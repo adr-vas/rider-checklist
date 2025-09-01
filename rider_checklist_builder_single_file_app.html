@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rider Checklist Builder</title>
+  <style>
+    body{font-family:Arial, sans-serif; margin:0; background:#f6f6f9; color:#222}
+    header{padding:15px; background:#2563eb; color:#fff}
+    h1{margin:0; font-size:20px}
+    main{max-width:900px; margin:20px auto; padding:0 16px}
+    .card{background:#fff; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 6px rgba(0,0,0,0.1)}
+    .uploader{border:2px dashed #ccc; border-radius:10px; padding:20px; text-align:center; background:#fafafa; position:relative; cursor:pointer}
+    .uploader.drag{border-color:#2563eb; background:#eef5ff}
+    .uploader input{position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer}
+    .btn{padding:8px 14px; border:none; border-radius:6px; cursor:pointer; margin:4px}
+    .btn.primary{background:#2563eb; color:#fff}
+    .btn.secondary{background:#f1f1f1}
+    .alert{padding:10px; border-radius:6px; margin-top:10px; font-weight:bold}
+    .alert.warn{background:#fff7ed; border:1px solid #fbbf24; color:#92400e}
+  .uploader{position:relative}
+  .uploader input{position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rider Checklist Builder</h1>
+  </header>
+  <main>
+    <div class="card">
+      <div class="uploader" id="drop">
+        <h3>Upload rider PDFs or images</h3>
+        <p>Drop files here or click to browse</p>
+        <input id="file" type="file" accept="application/pdf,image/*" multiple />
+      </div>
+      <div class="alert warn" id="ocrStatus">No files processed yet.</div>
+      <div>
+        <button class="btn primary" id="btnRunOCR">Run OCR</button>
+        <button class="btn secondary" id="btnClear">Reset</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Parsed Text</h2>
+      <textarea id="parsed" style="width:100%; height:300px"></textarea>
+    </div>
+  </main>
+
+  <!-- libs -->
+  <script src="https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+  <script src="https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+  <script>
+    const drop=document.getElementById('drop');
+    const input=document.getElementById('file');
+    let filesCache=[];
+
+    // Click anywhere on dropzone to open picker
+    drop.addEventListener('click', ()=> input && input.click());
+
+    // Drag & Drop handling
+    ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); drop.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); }));
+    drop.addEventListener('click', () => input && input.click());
+    drop.addEventListener('drop', async e => {
+      const files = e.dataTransfer?.files?.length ? e.dataTransfer.files : [];
+      if (!files.length && e.dataTransfer?.items) {
+        const arr = [];
+        for (const it of e.dataTransfer.items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) arr.push(f); } }
+        await handleFiles(arr);
+      } else {
+        await handleFiles(files);
+      }
+      runOCR();
+    }); if (f) arr.push(f); } }
+        handleFiles(arr);
+      } else {
+        handleFiles(files);
+      }
+    });
+    input.addEventListener('change', async e => { await handleFiles(e.target.files); runOCR(); });
+
+    function handleFiles(files){
+      const list = Array.from(files || []);
+      if (!list.length) {
+        document.getElementById('ocrStatus').textContent = 'No files detected. Click or drop PDFs/images here.';
+        return;
+      }
+      filesCache = list;
+      const names = filesCache.map(f => `${f.name} (${Math.round(f.size/1024)} KB)`).join(', ');
+      document.getElementById('ocrStatus').textContent = `${filesCache.length} file(s) ready: ${names}. Click \"Run OCR\" to process.`;
+    }
+      filesCache=list;
+      const names=filesCache.map(f=>`${f.name} (${Math.round(f.size/1024)} KB)`).join(', ');
+      document.getElementById('ocrStatus').textContent=`${filesCache.length} file(s) ready: ${names}. Click "Run OCR" to process.`;
+    }
+
+    document.getElementById('btnRunOCR').onclick=()=>runOCR();
+    document.getElementById('btnClear').onclick=()=>{
+      filesCache=[];
+      document.getElementById('ocrStatus').textContent='No files processed yet.';
+      document.getElementById('parsed').value='';
+    }
+
+    async function runOCR(){
+      if(!filesCache.length){
+        document.getElementById('ocrStatus').textContent='No files selected.';
+        return;
+      }
+      document.getElementById('ocrStatus').textContent='Processing...';
+      let text='';
+      try{
+        for(const f of filesCache){
+          if(f.type==='application/pdf'){
+            text+='\n'+await ocrPdf(f);
+          } else if(f.type.startsWith('image/')){
+            text+='\n'+await ocrImage(f);
+          } else {
+            text+=`\n[Skipped unsupported file type: ${f.name}]`;
+          }
+        }
+        document.getElementById('parsed').value=text;
+        document.getElementById('ocrStatus').textContent='Done!';
+      } catch(err){
+        console.error(err);
+        document.getElementById('ocrStatus').textContent='Upload/OCR error: '+(err&&err.message?err.message:err);
+      }
+    }
+
+    async function ocrImage(file){
+    const { data: { text } } = await Tesseract.recognize(file, 'eng', { logger: m => {} });
+    return text;
+  }}=await Tesseract.recognize(await file.arrayBuffer(),'eng');
+      return text;
+    }
+
+    async function ocrPdf(file){
+      const buf=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      let out='';
+      for(let i=1;i<=pdf.numPages;i++){
+        const page=await pdf.getPage(i);
+        const txt=await page.getTextContent();
+        out+=txt.items.map(it=>it.str).join(' ')+'\n';
+      }
+      return out;
+    }
+  </script>
+<script>
+  (function(){
+    function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s);});}
+    (async()=>{
+      try{
+        // If pdfjs isn't available (or blocked due to MIME), load the legacy UMD build
+        if(!(window['pdfjs-dist/build/pdf'] || window.pdfjsLib)){
+          await loadScript('https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.min.js');
+        }
+        const lib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+        if(lib && lib.GlobalWorkerOptions){
+          lib.GlobalWorkerOptions.workerSrc='https://unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.js';
+          window.pdfjsLib = lib;
+        } else {
+          document.getElementById('ocrStatus')?.textContent = 'PDF support not loaded — image OCR will still work.';
+        }
+      }catch(e){
+        document.getElementById('ocrStatus')?.textContent = 'PDF support failed to load; image OCR will still work.';
+      }
+    })();
+  })();
+</script>
+</body>
+</html>
