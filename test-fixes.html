@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Verification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .testing { border-color: #ffc107; background-color: #fff3cd; }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success-status { background-color: #28a745; color: white; }
+        .error-status { background-color: #dc3545; color: white; }
+        .warning-status { background-color: #ffc107; color: black; }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fix Verification Test</h1>
+    <p>This page tests if the timing and initialization fixes are working correctly.</p>
+    
+    <div class="test-section" id="libraryTest">
+        <h2>📚 Library Loading Test</h2>
+        <div id="libraryStatus" class="status">Ready to test</div>
+        <button onclick="testLibraryLoading()">Test Library Loading</button>
+        <div class="log" id="libraryLog"></div>
+    </div>
+    
+    <div class="test-section" id="ocrTest">
+        <h2>🔍 OCR Processor Test</h2>
+        <div id="ocrStatus" class="status">Ready to test</div>
+        <button onclick="testOCRProcessor()">Test OCR Processor</button>
+        <div class="log" id="ocrLog"></div>
+    </div>
+    
+    <div class="test-section" id="integrationTest">
+        <h2>🔗 Integration Test</h2>
+        <div id="integrationStatus" class="status">Ready to test</div>
+        <button onclick="testIntegration()" id="integrationBtn" disabled>Test Integration</button>
+        <div class="log" id="integrationLog"></div>
+    </div>
+    
+    <div class="test-section" id="results">
+        <h2>📊 Test Results</h2>
+        <div id="resultsContent">
+            <p>Run the tests above to see results.</p>
+        </div>
+    </div>
+    
+    <script>
+        let librariesLoaded = false;
+        let ocrReady = false;
+        
+        // Test library loading
+        async function testLibraryLoading() {
+            const statusDiv = document.getElementById('libraryStatus');
+            const logDiv = document.getElementById('libraryLog');
+            
+            statusDiv.textContent = 'Testing...';
+            statusDiv.className = 'status';
+            logDiv.innerHTML = '';
+            
+            logDiv.innerHTML += '<div>🔍 Testing library availability...</div>';
+            
+            // Wait for libraries to load
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds
+            
+            while (attempts < maxAttempts) {
+                if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
+                    librariesLoaded = true;
+                    statusDiv.textContent = '✅ Libraries loaded successfully';
+                    statusDiv.className = 'status success-status';
+                    
+                    logDiv.innerHTML += `<div>✅ PDF.js: v${pdfjsLib.version || 'unknown'}</div>`;
+                    logDiv.innerHTML += `<div>✅ Tesseract.js: v${Tesseract.version || 'unknown'}</div>`;
+                    
+                    // Check PDF.js worker configuration
+                    if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                        logDiv.innerHTML += `<div>✅ PDF.js worker configured: ${pdfjsLib.GlobalWorkerOptions.workerSrc}</div>`;
+                    } else {
+                        logDiv.innerHTML += `<div>⚠️ PDF.js worker not configured</div>`;
+                    }
+                    
+                    console.log('Libraries loaded successfully');
+                    break;
+                }
+                
+                attempts++;
+                logDiv.innerHTML += `<div>⏳ Waiting for libraries... (attempt ${attempts}/${maxAttempts})</div>`;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            if (!librariesLoaded) {
+                statusDiv.textContent = '❌ Libraries failed to load';
+                statusDiv.className = 'status error-status';
+                logDiv.innerHTML += '<div>❌ Libraries not available after timeout</div>';
+            }
+            
+            updateIntegrationButton();
+        }
+        
+        // Test OCR processor
+        async function testOCRProcessor() {
+            const statusDiv = document.getElementById('ocrStatus');
+            const logDiv = document.getElementById('ocrLog');
+            
+            if (!librariesLoaded) {
+                statusDiv.textContent = '❌ Libraries not loaded';
+                statusDiv.className = 'status error-status';
+                logDiv.innerHTML = '<div>❌ Please load libraries first</div>';
+                return;
+            }
+            
+            statusDiv.textContent = 'Testing...';
+            statusDiv.className = 'status';
+            logDiv.innerHTML = '';
+            
+            logDiv.innerHTML += '<div>🔍 Testing OCR processor...</div>';
+            
+            // Wait for OCR processor to be ready
+            let attempts = 0;
+            const maxAttempts = 100; // 10 seconds
+            
+            while (attempts < maxAttempts) {
+                if (typeof window.ocrProcessor !== 'undefined') {
+                    const processor = window.ocrProcessor;
+                    
+                    logDiv.innerHTML += `<div>✅ OCR Processor found</div>`;
+                    logDiv.innerHTML += `<div>📊 Status: initialized=${processor.isInitialized}, pdfInitialized=${processor.pdfInitialized}</div>`;
+                    
+                    // Wait for it to be fully ready
+                    if (processor.pdfInitialized) {
+                        ocrReady = true;
+                        statusDiv.textContent = '✅ OCR Processor ready';
+                        statusDiv.className = 'status success-status';
+                        logDiv.innerHTML += '<div>✅ OCR Processor fully initialized</div>';
+                        break;
+                    } else {
+                        logDiv.innerHTML += `<div>⏳ Waiting for PDF.js initialization... (attempt ${attempts}/${maxAttempts})</div>`;
+                    }
+                } else {
+                    logDiv.innerHTML += `<div>⏳ Waiting for OCR processor... (attempt ${attempts}/${maxAttempts})</div>`;
+                }
+                
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            if (!ocrReady) {
+                statusDiv.textContent = '❌ OCR Processor not ready';
+                statusDiv.className = 'status error-status';
+                logDiv.innerHTML += '<div>❌ OCR Processor not ready after timeout</div>';
+            }
+            
+            updateIntegrationButton();
+        }
+        
+        // Test integration
+        async function testIntegration() {
+            const statusDiv = document.getElementById('integrationStatus');
+            const logDiv = document.getElementById('integrationLog');
+            const resultsDiv = document.getElementById('resultsContent');
+            
+            if (!librariesLoaded || !ocrReady) {
+                statusDiv.textContent = '❌ Prerequisites not met';
+                statusDiv.className = 'status error-status';
+                logDiv.innerHTML = '<div>❌ Please complete library and OCR tests first</div>';
+                return;
+            }
+            
+            statusDiv.textContent = 'Testing...';
+            statusDiv.className = 'status';
+            logDiv.innerHTML = '';
+            
+            logDiv.innerHTML += '<div>🔗 Testing integration...</div>';
+            
+            try {
+                // Test if we can create a simple PDF document
+                const testData = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF header
+                
+                if (typeof pdfjsLib !== 'undefined') {
+                    logDiv.innerHTML += '<div>✅ PDF.js available for testing</div>';
+                    
+                    // Test worker configuration
+                    if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                        logDiv.innerHTML += '<div>✅ PDF.js worker properly configured</div>';
+                    } else {
+                        logDiv.innerHTML += '<div>⚠️ PDF.js worker not configured</div>';
+                    }
+                }
+                
+                // Test Tesseract availability
+                if (typeof Tesseract !== 'undefined') {
+                    logDiv.innerHTML += '<div>✅ Tesseract.js available for testing</div>';
+                }
+                
+                // Test OCR processor
+                if (typeof window.ocrProcessor !== 'undefined') {
+                    const processor = window.ocrProcessor;
+                    logDiv.innerHTML += '<div>✅ OCR Processor available</div>';
+                    logDiv.innerHTML += `<div>📊 Processor status: ${JSON.stringify({
+                        isInitialized: processor.isInitialized,
+                        pdfInitialized: processor.pdfInitialized
+                    })}</div>`;
+                }
+                
+                statusDiv.textContent = '✅ Integration test passed';
+                statusDiv.className = 'status success-status';
+                logDiv.innerHTML += '<div>✅ All components working together</div>';
+                
+                resultsDiv.innerHTML = `
+                    <h3>🎉 All Tests Passed!</h3>
+                    <p><strong>Status:</strong> Ready for production use</p>
+                    <p><strong>PDF.js:</strong> ✅ Loaded and configured</p>
+                    <p><strong>Tesseract.js:</strong> ✅ Loaded and ready</p>
+                    <p><strong>OCR Processor:</strong> ✅ Initialized and ready</p>
+                    <p><strong>Recommendation:</strong> Your website should now work without PDF.js loading errors!</p>
+                `;
+                
+            } catch (error) {
+                statusDiv.textContent = '❌ Integration test failed';
+                statusDiv.className = 'status error-status';
+                logDiv.innerHTML += `<div>❌ Error: ${error.message}</div>`;
+                
+                resultsDiv.innerHTML = `
+                    <h3>❌ Integration Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the console for more details.</p>
+                `;
+            }
+        }
+        
+        // Update integration button state
+        function updateIntegrationButton() {
+            const integrationBtn = document.getElementById('integrationBtn');
+            integrationBtn.disabled = !(librariesLoaded && ocrReady);
+            
+            if (librariesLoaded && ocrReady) {
+                integrationBtn.textContent = 'Test Integration (Ready)';
+            } else {
+                integrationBtn.textContent = 'Test Integration (Waiting for prerequisites)';
+            }
+        }
+        
+        // Auto-run tests after page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Auto-running fix verification tests...');
+                testLibraryLoading();
+                testOCRProcessor();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

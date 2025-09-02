@@ -8,28 +8,54 @@ class OCRProcessor {
         this.worker = null;
         this.currentProgress = 0;
         this.progressCallback = null;
+        this.pdfInitialized = false;
         
-        // Initialize PDF.js
-        this.initPDFJS();
+        // Don't initialize immediately - wait for libraries to be ready
+        this.checkLibrariesReady();
+    }
+    
+    /**
+     * Check if libraries are ready and initialize if they are
+     */
+    checkLibrariesReady() {
+        // Check every 100ms for libraries to be ready
+        const checkInterval = setInterval(() => {
+            if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
+                clearInterval(checkInterval);
+                this.initPDFJS();
+                console.log('Libraries ready, initializing OCR processor');
+            }
+        }, 100);
+        
+        // Stop checking after 10 seconds to avoid infinite loop
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            if (!this.pdfInitialized) {
+                console.warn('Libraries not ready after 10 seconds, OCR processor may not work properly');
+            }
+        }, 10000);
     }
 
     /**
      * Initialize PDF.js configuration
      */
-    initPDFJS() {
+    async initPDFJS() {
         try {
             if (typeof pdfjsLib !== 'undefined') {
-                // Try primary worker source, fallback if it fails
-                this.setWorkerSource(CONFIG.pdf.workerSrc, CONFIG.pdf.workerFallback);
+                // Set worker source first
+                await this.setWorkerSource(CONFIG.pdf.workerSrc, CONFIG.pdf.workerFallback);
                 this.isInitialized = true;
+                this.pdfInitialized = true;
                 console.log('PDF.js initialized successfully');
             } else {
                 console.error('PDF.js library not loaded');
                 this.isInitialized = false;
+                this.pdfInitialized = false;
             }
         } catch (error) {
             console.error('Error initializing PDF.js:', error);
             this.isInitialized = false;
+            this.pdfInitialized = false;
         }
     }
 
@@ -38,17 +64,38 @@ class OCRProcessor {
      */
     async setWorkerSource(primarySrc, fallbackSrc) {
         try {
+            // Ensure pdfjsLib is available
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF.js library not available');
+            }
+            
+            // Set the worker source
             pdfjsLib.GlobalWorkerOptions.workerSrc = primarySrc;
             console.log('PDF.js worker source set to:', primarySrc);
+            
+            // Verify the worker source was set
+            if (pdfjsLib.GlobalWorkerOptions.workerSrc !== primarySrc) {
+                throw new Error('Failed to set worker source');
+            }
+            
         } catch (error) {
             console.warn('Failed to set primary worker source, trying fallback:', error);
             if (fallbackSrc) {
                 try {
                     pdfjsLib.GlobalWorkerOptions.workerSrc = fallbackSrc;
                     console.log('PDF.js worker source set to fallback:', fallbackSrc);
+                    
+                    // Verify the fallback worker source was set
+                    if (pdfjsLib.GlobalWorkerOptions.workerSrc !== fallbackSrc) {
+                        throw new Error('Failed to set fallback worker source');
+                    }
+                    
                 } catch (fallbackError) {
                     console.error('Failed to set fallback worker source:', fallbackError);
+                    throw fallbackError; // Re-throw to indicate complete failure
                 }
+            } else {
+                throw error; // Re-throw if no fallback available
             }
         }
     }
@@ -67,11 +114,22 @@ class OCRProcessor {
                     // Only send serializable data to avoid DataCloneError
                     if (this.progressCallback && m.status === 'recognizing text') {
                         try {
-                            this.progressCallback({
+                            // Create a simple, serializable progress object
+                            const progressData = {
                                 type: 'ocr',
                                 progress: m.progress || 0,
                                 message: `OCR: ${Math.round((m.progress || 0) * 100)}%`
-                            });
+                            };
+                            
+                            // Use setTimeout to avoid blocking the worker
+                            setTimeout(() => {
+                                try {
+                                    this.progressCallback(progressData);
+                                } catch (error) {
+                                    console.warn('Progress callback error:', error);
+                                }
+                            }, 0);
+                            
                         } catch (error) {
                             console.warn('Progress callback error:', error);
                         }
@@ -86,9 +144,49 @@ class OCRProcessor {
     }
 
     /**
+     * Check if libraries are ready for processing
+     */
+    checkLibrariesReady() {
+        if (!this.pdfInitialized) {
+            console.warn('PDF.js not initialized yet, waiting...');
+            return false;
+        }
+        
+        if (typeof Tesseract === 'undefined') {
+            console.warn('Tesseract.js not available');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Wait for libraries to be ready (with timeout)
+     */
+    async waitForLibraries(timeout = 10000) {
+        const startTime = Date.now();
+        
+        while (!this.checkLibrariesReady()) {
+            if (Date.now() - startTime > timeout) {
+                throw new Error('Libraries not ready after timeout');
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        return true;
+    }
+    
+    /**
      * Process multiple files
      */
     async processFiles(files, progressCallback) {
+        // Wait for libraries to be ready
+        try {
+            await this.waitForLibraries();
+        } catch (error) {
+            throw new Error('Libraries not ready: ' + error.message);
+        }
+        
         this.progressCallback = progressCallback;
         const results = [];
         let totalText = '';
@@ -562,4 +660,10 @@ const ocrProcessor = new OCRProcessor();
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = OCRProcessor;
+}
+
+// Make available globally for debugging
+if (typeof window !== 'undefined') {
+    window.OCRProcessor = OCRProcessor;
+    window.ocrProcessor = ocrProcessor;
 }

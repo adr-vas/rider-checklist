@@ -852,21 +852,31 @@ class RiderApp {
      * Check for required libraries
      */
     checkRequiredLibraries() {
-        // Check PDF.js
-        if (typeof pdfjsLib === 'undefined') {
-            console.warn('PDF.js library not loaded - PDF processing will be disabled');
-            showToast('PDF processing disabled - PDF.js not loaded', 'warning');
-        } else {
-            console.log('PDF.js library loaded successfully');
-        }
-        
-        // Check Tesseract.js
-        if (typeof Tesseract === 'undefined') {
-            console.warn('Tesseract.js library not loaded - OCR processing will be disabled');
-            showToast('OCR processing disabled - Tesseract.js not loaded', 'warning');
-        } else {
-            console.log('Tesseract.js library loaded successfully');
-        }
+        // Wait a bit for libraries to load, then check
+        setTimeout(() => {
+            // Check PDF.js
+            if (typeof pdfjsLib !== 'undefined') {
+                console.log('PDF.js library loaded successfully (v' + (pdfjsLib.version || 'unknown') + ')');
+                
+                // Check if worker is properly configured
+                if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                    console.log('PDF.js worker source configured:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+                } else {
+                    console.warn('PDF.js worker source not configured');
+                }
+            } else {
+                console.warn('PDF.js library not loaded - PDF processing will be disabled');
+                showToast('PDF processing disabled - PDF.js not loaded', 'warning');
+            }
+            
+            // Check Tesseract.js
+            if (typeof Tesseract !== 'undefined') {
+                console.log('Tesseract.js library loaded successfully (v' + (Tesseract.version || 'unknown') + ')');
+            } else {
+                console.warn('Tesseract.js library not loaded - OCR processing will be disabled');
+                showToast('OCR processing disabled - Tesseract.js not loaded', 'warning');
+            }
+        }, 2000); // Wait 2 seconds for libraries to load
     }
 
     /**

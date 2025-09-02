@@ -80,6 +80,13 @@
             if (typeof pdfjsLib !== 'undefined') {
                 console.log('PDF.js test: Library is available');
                 console.log('PDF.js version:', pdfjsLib.version);
+                
+                // Check worker configuration
+                if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                    console.log('PDF.js worker source:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+                } else {
+                    console.warn('PDF.js worker source not configured');
+                }
             } else {
                 console.error('PDF.js test: Library is NOT available');
             }
@@ -89,6 +96,14 @@
                 console.log('Tesseract.js version:', Tesseract.version);
             } else {
                 console.error('Tesseract.js test: Library is NOT available');
+            }
+            
+            // Test OCR processor initialization
+            if (typeof window.ocrProcessor !== 'undefined') {
+                console.log('OCR Processor status:', {
+                    isInitialized: window.ocrProcessor.isInitialized,
+                    pdfInitialized: window.ocrProcessor.pdfInitialized
+                });
             }
         }, 3000);
     </script>
