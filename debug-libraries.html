@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Debugging Console</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .debug-panel {
+            background: #2d2d2d;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success { background-color: #2d5a2d; color: #4CAF50; }
+        .error { background-color: #5a2d2d; color: #f44336; }
+        .warning { background-color: #5a4a2d; color: #ff9800; }
+        .info { background-color: #2d4a5a; color: #2196F3; }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover { background: #005a9e; }
+        .log {
+            background: #1e1e1e;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-entry.error { color: #f44336; }
+        .log-entry.warning { color: #ff9800; }
+        .log-entry.success { color: #4CAF50; }
+        .log-entry.info { color: #2196F3; }
+        .timestamp {
+            color: #888;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Library Debugging Console</h1>
+    <p>Use this console to debug library loading and initialization issues.</p>
+    
+    <div class="debug-panel">
+        <h2>📊 Current Status</h2>
+        <div id="currentStatus">
+            <div class="status info">Loading status...</div>
+        </div>
+        <button onclick="refreshStatus()">🔄 Refresh Status</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>🎯 Manual Actions</h2>
+        <button onclick="debugOCR()">🔍 Debug OCR Processor</button>
+        <button onclick="forceInit()">⚡ Force Initialize</button>
+        <button onclick="testLibraries()">🧪 Test Libraries</button>
+        <button onclick="checkWorkers()">🔧 Check Workers</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h2>📝 Debug Log</h2>
+        <div class="log" id="debugLog"></div>
+    </div>
+    
+    <script>
+        let logEntries = [];
+        
+        // Add log entry
+        function addLogEntry(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = {
+                timestamp,
+                message,
+                type
+            };
+            
+            logEntries.push(entry);
+            
+            const logDiv = document.getElementById('debugLog');
+            const entryDiv = document.createElement('div');
+            entryDiv.className = `log-entry ${type}`;
+            entryDiv.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(entryDiv);
+            
+            // Auto-scroll to bottom
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // Also log to console
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        // Clear log
+        function clearLog() {
+            logEntries = [];
+            document.getElementById('debugLog').innerHTML = '';
+            addLogEntry('Log cleared', 'info');
+        }
+        
+        // Refresh status
+        function refreshStatus() {
+            addLogEntry('Refreshing status...', 'info');
+            
+            const statusDiv = document.getElementById('currentStatus');
+            let statusHTML = '';
+            
+            // Check PDF.js
+            if (typeof pdfjsLib !== 'undefined') {
+                statusHTML += '<div class="status success">✅ PDF.js: Available</div>';
+                statusHTML += `<div class="status info">Version: ${pdfjsLib.version || 'Unknown'}</div>`;
+                
+                if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                    statusHTML += `<div class="status success">Worker: ${pdfjsLib.GlobalWorkerOptions.workerSrc}</div>`;
+                } else {
+                    statusHTML += '<div class="status warning">Worker: Not configured</div>';
+                }
+            } else {
+                statusHTML += '<div class="status error">❌ PDF.js: Not available</div>';
+            }
+            
+            // Check Tesseract.js
+            if (typeof Tesseract !== 'undefined') {
+                statusHTML += '<div class="status success">✅ Tesseract.js: Available</div>';
+                statusHTML += `<div class="status info">Version: ${Tesseract.version || 'Unknown'}</div>`;
+            } else {
+                statusHTML += '<div class="status error">❌ Tesseract.js: Not available</div>';
+            }
+            
+            // Check OCR Processor
+            if (typeof window.ocrProcessor !== 'undefined') {
+                const processor = window.ocrProcessor;
+                statusHTML += '<div class="status success">✅ OCR Processor: Found</div>';
+                statusHTML += `<div class="status info">Initialized: ${processor.isInitialized}</div>`;
+                statusHTML += `<div class="status info">PDF Initialized: ${processor.pdfInitialized}</div>`;
+            } else {
+                statusHTML += '<div class="status error">❌ OCR Processor: Not found</div>';
+            }
+            
+            statusDiv.innerHTML = statusHTML;
+            addLogEntry('Status refreshed', 'success');
+        }
+        
+        // Debug OCR processor
+        function debugOCR() {
+            addLogEntry('Debugging OCR processor...', 'info');
+            
+            if (typeof window.debugOCRProcessor === 'function') {
+                window.debugOCRProcessor();
+                addLogEntry('OCR debug info logged to console', 'success');
+            } else {
+                addLogEntry('OCR debug function not available', 'error');
+            }
+        }
+        
+        // Force initialization
+        async function forceInit() {
+            addLogEntry('Forcing OCR initialization...', 'info');
+            
+            if (typeof window.forceInitOCR === 'function') {
+                try {
+                    const result = await window.forceInitOCR();
+                    if (result) {
+                        addLogEntry('Force initialization successful', 'success');
+                    } else {
+                        addLogEntry('Force initialization failed', 'error');
+                    }
+                } catch (error) {
+                    addLogEntry(`Force initialization error: ${error.message}`, 'error');
+                }
+            } else {
+                addLogEntry('Force init function not available', 'error');
+            }
+            
+            // Refresh status after attempt
+            setTimeout(refreshStatus, 1000);
+        }
+        
+        // Test libraries
+        function testLibraries() {
+            addLogEntry('Testing libraries...', 'info');
+            
+            try {
+                // Test PDF.js
+                if (typeof pdfjsLib !== 'undefined') {
+                    addLogEntry('PDF.js test: Available', 'success');
+                    
+                    // Test worker configuration
+                    if (pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                        addLogEntry('PDF.js worker: Configured', 'success');
+                    } else {
+                        addLogEntry('PDF.js worker: Not configured', 'warning');
+                    }
+                } else {
+                    addLogEntry('PDF.js test: Not available', 'error');
+                }
+                
+                // Test Tesseract.js
+                if (typeof Tesseract !== 'undefined') {
+                    addLogEntry('Tesseract.js test: Available', 'success');
+                } else {
+                    addLogEntry('Tesseract.js test: Not available', 'error');
+                }
+                
+                // Test OCR processor
+                if (typeof window.ocrProcessor !== 'undefined') {
+                    const processor = window.ocrProcessor;
+                    addLogEntry(`OCR Processor test: Found (init: ${processor.isInitialized}, pdf: ${processor.pdfInitialized})`, 'info');
+                } else {
+                    addLogEntry('OCR Processor test: Not found', 'error');
+                }
+                
+            } catch (error) {
+                addLogEntry(`Library test error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Check workers
+        function checkWorkers() {
+            addLogEntry('Checking workers...', 'info');
+            
+            try {
+                if (typeof pdfjsLib !== 'undefined') {
+                    const workerSrc = pdfjsLib.GlobalWorkerOptions.workerSrc;
+                    if (workerSrc) {
+                        addLogEntry(`PDF.js worker source: ${workerSrc}`, 'info');
+                        
+                        // Test if worker URL is accessible
+                        fetch(workerSrc, { method: 'HEAD', mode: 'no-cors' })
+                            .then(() => addLogEntry('PDF.js worker URL: Accessible', 'success'))
+                            .catch(() => addLogEntry('PDF.js worker URL: Not accessible', 'warning'));
+                    } else {
+                        addLogEntry('PDF.js worker: Not configured', 'warning');
+                    }
+                }
+                
+                if (typeof Tesseract !== 'undefined') {
+                    addLogEntry('Tesseract.js: Ready for worker creation', 'info');
+                }
+                
+            } catch (error) {
+                addLogEntry(`Worker check error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-refresh status every 5 seconds
+        setInterval(refreshStatus, 5000);
+        
+        // Initial status check
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addLogEntry('Debug console loaded', 'info');
+                refreshStatus();
+            }, 1000);
+        });
+        
+        // Add some helpful global functions
+        window.addDebugLog = addLogEntry;
+        window.getDebugLog = () => logEntries;
+    </script>
+</body>
+</html>

@@ -18,22 +18,30 @@ class OCRProcessor {
      * Check if libraries are ready and initialize if they are
      */
     checkLibrariesReady() {
-        // Check every 100ms for libraries to be ready
+        console.log('Starting library availability check...');
+        let attempts = 0;
+        const maxAttempts = 200; // 20 seconds total
+        
         const checkInterval = setInterval(() => {
+            attempts++;
+            console.log(`Library check attempt ${attempts}/${maxAttempts}`);
+            
             if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
+                console.log('✅ Libraries detected, clearing interval and initializing...');
                 clearInterval(checkInterval);
                 this.initPDFJS();
                 console.log('Libraries ready, initializing OCR processor');
+            } else {
+                if (attempts >= maxAttempts) {
+                    console.error('❌ Libraries not ready after maximum attempts, stopping check');
+                    clearInterval(checkInterval);
+                    this.pdfInitialized = false;
+                    this.isInitialized = false;
+                } else {
+                    console.log(`⏳ Waiting for libraries... (${attempts}/${maxAttempts})`);
+                }
             }
         }, 100);
-        
-        // Stop checking after 10 seconds to avoid infinite loop
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            if (!this.pdfInitialized) {
-                console.warn('Libraries not ready after 10 seconds, OCR processor may not work properly');
-            }
-        }, 10000);
     }
 
     /**
@@ -161,18 +169,54 @@ class OCRProcessor {
     }
     
     /**
+     * Force re-check and initialization of libraries
+     */
+    async forceReinitialize() {
+        console.log('🔄 Force re-initializing libraries...');
+        
+        if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
+            try {
+                await this.initPDFJS();
+                console.log('✅ Force re-initialization successful');
+                return true;
+            } catch (error) {
+                console.error('❌ Force re-initialization failed:', error);
+                return false;
+            }
+        } else {
+            console.log('⏳ Libraries not available for re-initialization');
+            return false;
+        }
+    }
+    
+    /**
      * Wait for libraries to be ready (with timeout)
      */
-    async waitForLibraries(timeout = 10000) {
+    async waitForLibraries(timeout = 30000) { // Increased timeout to 30 seconds
         const startTime = Date.now();
+        let attempts = 0;
+        const maxAttempts = Math.floor(timeout / 100);
+        
+        console.log(`Waiting for libraries to be ready (timeout: ${timeout}ms, max attempts: ${maxAttempts})`);
         
         while (!this.checkLibrariesReady()) {
+            attempts++;
+            
             if (Date.now() - startTime > timeout) {
-                throw new Error('Libraries not ready after timeout');
+                console.error(`❌ Libraries not ready after ${timeout}ms (${attempts} attempts)`);
+                throw new Error(`Libraries not ready after ${timeout}ms timeout`);
             }
+            
+            if (attempts >= maxAttempts) {
+                console.error(`❌ Libraries not ready after ${maxAttempts} attempts`);
+                throw new Error(`Libraries not ready after ${maxAttempts} attempts`);
+            }
+            
+            console.log(`⏳ Waiting for libraries... (attempt ${attempts}/${maxAttempts}, elapsed: ${Date.now() - startTime}ms)`);
             await new Promise(resolve => setTimeout(resolve, 100));
         }
         
+        console.log(`✅ Libraries ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
         return true;
     }
     
@@ -184,7 +228,15 @@ class OCRProcessor {
         try {
             await this.waitForLibraries();
         } catch (error) {
-            throw new Error('Libraries not ready: ' + error.message);
+            console.warn('Initial library wait failed, trying force re-initialization...');
+            
+            // Try force re-initialization
+            const reinitSuccess = await this.forceReinitialize();
+            if (!reinitSuccess) {
+                throw new Error('Libraries not ready: ' + error.message + ' (re-initialization also failed)');
+            }
+            
+            console.log('✅ Libraries ready after force re-initialization');
         }
         
         this.progressCallback = progressCallback;
@@ -666,4 +718,40 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.OCRProcessor = OCRProcessor;
     window.ocrProcessor = ocrProcessor;
+    
+    // Add global debugging methods
+    window.debugOCRProcessor = () => {
+        console.log('🔍 OCR Processor Debug Info:');
+        console.log('OCR Processor:', window.ocrProcessor);
+        console.log('PDF.js available:', typeof pdfjsLib !== 'undefined');
+        console.log('Tesseract available:', typeof Tesseract !== 'undefined');
+        
+        if (typeof pdfjsLib !== 'undefined') {
+            console.log('PDF.js version:', pdfjsLib.version);
+            console.log('PDF.js worker source:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+        }
+        
+        if (typeof Tesseract !== 'undefined') {
+            console.log('Tesseract version:', Tesseract.version);
+        }
+        
+        if (window.ocrProcessor) {
+            console.log('OCR Processor status:', {
+                isInitialized: window.ocrProcessor.isInitialized,
+                pdfInitialized: window.ocrProcessor.pdfInitialized
+            });
+        }
+    };
+    
+    window.forceInitOCR = async () => {
+        if (window.ocrProcessor) {
+            console.log('🔄 Manually forcing OCR initialization...');
+            const result = await window.ocrProcessor.forceReinitialize();
+            console.log('Manual initialization result:', result);
+            return result;
+        } else {
+            console.error('OCR Processor not available');
+            return false;
+        }
+    };
 }
