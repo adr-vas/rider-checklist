@@ -116,31 +116,28 @@
                 if (typeof window.ocrProcessor !== 'undefined') {
                     const processor = window.ocrProcessor;
                     
-                    if (processor.pdfInitialized) {
+                    if (processor.isInitialized) {
                         ocrStatusElement.textContent = '✅ Ready';
                         ocrStatusElement.style.color = '#4CAF50';
                         clearInterval(checkInterval);
-                    } else if (processor.isInitialized) {
-                        ocrStatusElement.textContent = '⚠️ Partial';
-                        ocrStatusElement.style.color = '#ff9800';
                     } else {
-                        ocrStatusElement.textContent = '⏳ Initializing...';
+                        ocrStatusElement.textContent = '⏳ Waiting for files...';
                         ocrStatusElement.style.color = '#2196F3';
                     }
                 } else {
                     ocrStatusElement.textContent = '❌ Not Found';
                     ocrStatusElement.style.color = '#f44336';
                 }
-            }, 500);
+            }, 1000);
             
-            // Stop monitoring after 30 seconds
+            // Stop monitoring after 10 seconds
             setTimeout(() => {
                 clearInterval(checkInterval);
                 if (ocrStatusElement.textContent.includes('⏳')) {
-                    ocrStatusElement.textContent = '⚠️ Timeout';
-                    ocrStatusElement.style.color = '#ff9800';
+                    ocrStatusElement.textContent = '⏳ Ready when needed';
+                    ocrStatusElement.style.color = '#2196F3';
                 }
-            }, 30000);
+            }, 10000);
         }
     </script>
 </head>

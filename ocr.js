@@ -8,40 +8,20 @@ class OCRProcessor {
         this.worker = null;
         this.currentProgress = 0;
         this.progressCallback = null;
-        this.pdfInitialized = false;
         
-        // Don't initialize immediately - wait for libraries to be ready
-        this.checkLibrariesReady();
+        // Don't initialize anything in constructor - wait until actually needed
+        console.log('OCR Processor created - will initialize when needed');
     }
     
     /**
-     * Check if libraries are ready and initialize if they are
+     * Simple check if libraries are available
      */
-    checkLibrariesReady() {
-        console.log('Starting library availability check...');
-        let attempts = 0;
-        const maxAttempts = 200; // 20 seconds total
+    areLibrariesReady() {
+        const pdfReady = typeof pdfjsLib !== 'undefined';
+        const tesseractReady = typeof Tesseract !== 'undefined';
         
-        const checkInterval = setInterval(() => {
-            attempts++;
-            console.log(`Library check attempt ${attempts}/${maxAttempts}`);
-            
-            if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
-                console.log('✅ Libraries detected, clearing interval and initializing...');
-                clearInterval(checkInterval);
-                this.initPDFJS();
-                console.log('Libraries ready, initializing OCR processor');
-            } else {
-                if (attempts >= maxAttempts) {
-                    console.error('❌ Libraries not ready after maximum attempts, stopping check');
-                    clearInterval(checkInterval);
-                    this.pdfInitialized = false;
-                    this.isInitialized = false;
-                } else {
-                    console.log(`⏳ Waiting for libraries... (${attempts}/${maxAttempts})`);
-                }
-            }
-        }, 100);
+        console.log('Library check:', { pdfReady, tesseractReady });
+        return pdfReady && tesseractReady;
     }
 
     /**
@@ -49,64 +29,27 @@ class OCRProcessor {
      */
     async initPDFJS() {
         try {
-            if (typeof pdfjsLib !== 'undefined') {
-                // Set worker source first
-                await this.setWorkerSource(CONFIG.pdf.workerSrc, CONFIG.pdf.workerFallback);
-                this.isInitialized = true;
-                this.pdfInitialized = true;
-                console.log('PDF.js initialized successfully');
-            } else {
-                console.error('PDF.js library not loaded');
-                this.isInitialized = false;
-                this.pdfInitialized = false;
-            }
-        } catch (error) {
-            console.error('Error initializing PDF.js:', error);
-            this.isInitialized = false;
-            this.pdfInitialized = false;
-        }
-    }
-
-    /**
-     * Set PDF.js worker source with fallback
-     */
-    async setWorkerSource(primarySrc, fallbackSrc) {
-        try {
-            // Ensure pdfjsLib is available
             if (typeof pdfjsLib === 'undefined') {
                 throw new Error('PDF.js library not available');
             }
             
-            // Set the worker source
-            pdfjsLib.GlobalWorkerOptions.workerSrc = primarySrc;
-            console.log('PDF.js worker source set to:', primarySrc);
+            // Set worker source - simple approach
+            const workerSrc = CONFIG.pdf.workerSrc;
+            pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+            console.log('PDF.js worker source set to:', workerSrc);
             
-            // Verify the worker source was set
-            if (pdfjsLib.GlobalWorkerOptions.workerSrc !== primarySrc) {
-                throw new Error('Failed to set worker source');
-            }
+            this.isInitialized = true;
+            console.log('PDF.js initialized successfully');
+            return true;
             
         } catch (error) {
-            console.warn('Failed to set primary worker source, trying fallback:', error);
-            if (fallbackSrc) {
-                try {
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = fallbackSrc;
-                    console.log('PDF.js worker source set to fallback:', fallbackSrc);
-                    
-                    // Verify the fallback worker source was set
-                    if (pdfjsLib.GlobalWorkerOptions.workerSrc !== fallbackSrc) {
-                        throw new Error('Failed to set fallback worker source');
-                    }
-                    
-                } catch (fallbackError) {
-                    console.error('Failed to set fallback worker source:', fallbackError);
-                    throw fallbackError; // Re-throw to indicate complete failure
-                }
-            } else {
-                throw error; // Re-throw if no fallback available
-            }
+            console.error('Error initializing PDF.js:', error);
+            this.isInitialized = false;
+            return false;
         }
     }
+
+    // Removed complex worker source setting - using simple approach instead
 
     /**
      * Initialize Tesseract worker
@@ -119,28 +62,9 @@ class OCRProcessor {
         if (!this.worker) {
             this.worker = await Tesseract.createWorker({
                 logger: m => {
-                    // Only send serializable data to avoid DataCloneError
-                    if (this.progressCallback && m.status === 'recognizing text') {
-                        try {
-                            // Create a simple, serializable progress object
-                            const progressData = {
-                                type: 'ocr',
-                                progress: m.progress || 0,
-                                message: `OCR: ${Math.round((m.progress || 0) * 100)}%`
-                            };
-                            
-                            // Use setTimeout to avoid blocking the worker
-                            setTimeout(() => {
-                                try {
-                                    this.progressCallback(progressData);
-                                } catch (error) {
-                                    console.warn('Progress callback error:', error);
-                                }
-                            }, 0);
-                            
-                        } catch (error) {
-                            console.warn('Progress callback error:', error);
-                        }
+                    // Simple logging without complex callbacks to avoid DataCloneError
+                    if (m.status === 'recognizing text' && m.progress) {
+                        console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
                     }
                 }
             });
@@ -168,75 +92,28 @@ class OCRProcessor {
         return true;
     }
     
-    /**
-     * Force re-check and initialization of libraries
-     */
-    async forceReinitialize() {
-        console.log('🔄 Force re-initializing libraries...');
-        
-        if (typeof pdfjsLib !== 'undefined' && typeof Tesseract !== 'undefined') {
-            try {
-                await this.initPDFJS();
-                console.log('✅ Force re-initialization successful');
-                return true;
-            } catch (error) {
-                console.error('❌ Force re-initialization failed:', error);
-                return false;
-            }
-        } else {
-            console.log('⏳ Libraries not available for re-initialization');
-            return false;
-        }
-    }
+    // Removed complex force re-initialization - using simple approach instead
     
-    /**
-     * Wait for libraries to be ready (with timeout)
-     */
-    async waitForLibraries(timeout = 30000) { // Increased timeout to 30 seconds
-        const startTime = Date.now();
-        let attempts = 0;
-        const maxAttempts = Math.floor(timeout / 100);
-        
-        console.log(`Waiting for libraries to be ready (timeout: ${timeout}ms, max attempts: ${maxAttempts})`);
-        
-        while (!this.checkLibrariesReady()) {
-            attempts++;
-            
-            if (Date.now() - startTime > timeout) {
-                console.error(`❌ Libraries not ready after ${timeout}ms (${attempts} attempts)`);
-                throw new Error(`Libraries not ready after ${timeout}ms timeout`);
-            }
-            
-            if (attempts >= maxAttempts) {
-                console.error(`❌ Libraries not ready after ${maxAttempts} attempts`);
-                throw new Error(`Libraries not ready after ${maxAttempts} attempts`);
-            }
-            
-            console.log(`⏳ Waiting for libraries... (attempt ${attempts}/${maxAttempts}, elapsed: ${Date.now() - startTime}ms)`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        console.log(`✅ Libraries ready after ${attempts} attempts (${Date.now() - startTime}ms)`);
-        return true;
-    }
+    // Removed complex waiting logic - using simple checks instead
     
     /**
      * Process multiple files
      */
     async processFiles(files, progressCallback) {
-        // Wait for libraries to be ready
-        try {
-            await this.waitForLibraries();
-        } catch (error) {
-            console.warn('Initial library wait failed, trying force re-initialization...');
-            
-            // Try force re-initialization
-            const reinitSuccess = await this.forceReinitialize();
-            if (!reinitSuccess) {
-                throw new Error('Libraries not ready: ' + error.message + ' (re-initialization also failed)');
+        console.log('Starting file processing...');
+        
+        // Simple check if libraries are ready
+        if (!this.areLibrariesReady()) {
+            throw new Error('Required libraries not available. Please refresh the page and try again.');
+        }
+        
+        // Initialize PDF.js if needed
+        if (!this.isInitialized) {
+            console.log('Initializing PDF.js...');
+            const initSuccess = await this.initPDFJS();
+            if (!initSuccess) {
+                throw new Error('Failed to initialize PDF.js');
             }
-            
-            console.log('✅ Libraries ready after force re-initialization');
         }
         
         this.progressCallback = progressCallback;
@@ -737,8 +614,7 @@ if (typeof window !== 'undefined') {
         
         if (window.ocrProcessor) {
             console.log('OCR Processor status:', {
-                isInitialized: window.ocrProcessor.isInitialized,
-                pdfInitialized: window.ocrProcessor.pdfInitialized
+                isInitialized: window.ocrProcessor.isInitialized
             });
         }
     };
@@ -746,7 +622,7 @@ if (typeof window !== 'undefined') {
     window.forceInitOCR = async () => {
         if (window.ocrProcessor) {
             console.log('🔄 Manually forcing OCR initialization...');
-            const result = await window.ocrProcessor.forceReinitialize();
+            const result = await window.ocrProcessor.initPDFJS();
             console.log('Manual initialization result:', result);
             return result;
         } else {
