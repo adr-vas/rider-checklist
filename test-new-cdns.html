@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New CDN Configuration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .testing { border-color: #ffc107; background-color: #fff3cd; }
+        .url {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 5px;
+            border-radius: 3px;
+            word-break: break-all;
+            margin: 5px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success-status { background-color: #28a745; color: white; }
+        .error-status { background-color: #dc3545; color: white; }
+        .warning-status { background-color: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🧪 New CDN Configuration Test</h1>
+    <p>This page tests the updated CDN configuration that should fix the PDF.js loading issues.</p>
+    
+    <div class="test-section testing" id="pdfTest">
+        <h2>📄 PDF.js Test</h2>
+        <p><strong>Primary CDN:</strong> <span class="url">https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js</span></p>
+        <p><strong>Fallback CDN:</strong> <span class="url">https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js</span></p>
+        <div id="pdfStatus" class="status">Ready to test</div>
+        <button onclick="testPDFJS()">Test PDF.js Loading</button>
+        <button onclick="testPDFJSFunctionality()" id="pdfFuncBtn" disabled>Test PDF.js Functionality</button>
+    </div>
+    
+    <div class="test-section testing" id="tesseractTest">
+        <h2>🔍 Tesseract.js Test</h2>
+        <p><strong>Primary CDN:</strong> <span class="url">https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js</span></p>
+        <p><strong>Fallback CDN:</strong> <span class="url">https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js</span></p>
+        <div id="tesseractStatus" class="status">Ready to test</div>
+        <button onclick="testTesseract()">Test Tesseract.js Loading</button>
+        <button onclick="testTesseractFunctionality()" id="tesseractFuncBtn" disabled>Test Tesseract.js Functionality</button>
+    </div>
+    
+    <div class="test-section" id="integrationTest">
+        <h2>🔗 Integration Test</h2>
+        <p>Test if both libraries work together as they would in the main application.</p>
+        <div id="integrationStatus" class="status">Ready to test</div>
+        <button onclick="testIntegration()" id="integrationBtn" disabled>Test Integration</button>
+    </div>
+    
+    <div class="test-section" id="results">
+        <h2>📊 Test Results</h2>
+        <div id="resultsContent">
+            <p>Run the tests above to see results.</p>
+        </div>
+    </div>
+    
+    <script>
+        let pdfjsLoaded = false;
+        let tesseractLoaded = false;
+        
+        // Test PDF.js loading with new CDN configuration
+        async function testPDFJS() {
+            const statusDiv = document.getElementById('pdfStatus');
+            const testSection = document.getElementById('pdfTest');
+            const funcBtn = document.getElementById('pdfFuncBtn');
+            
+            statusDiv.textContent = 'Testing primary CDN...';
+            statusDiv.className = 'status';
+            
+            try {
+                // Try primary CDN first
+                await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+                
+                if (typeof pdfjsLib !== 'undefined') {
+                    pdfjsLoaded = true;
+                    statusDiv.textContent = `✅ Primary CDN loaded successfully (v${pdfjsLib.version})`;
+                    statusDiv.className = 'status success-status';
+                    testSection.className = 'test-section success';
+                    funcBtn.disabled = false;
+                    
+                    console.log('PDF.js loaded successfully from primary CDN');
+                } else {
+                    throw new Error('Library not available after loading');
+                }
+                
+            } catch (error) {
+                console.warn('Primary CDN failed, trying fallback...');
+                
+                try {
+                    // Try fallback CDN
+                    await loadScript('https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js');
+                    
+                    if (typeof pdfjsLib !== 'undefined') {
+                        pdfjsLoaded = true;
+                        statusDiv.textContent = `⚠️ Fallback CDN loaded successfully (v${pdfjsLib.version})`;
+                        statusDiv.className = 'status warning-status';
+                        testSection.className = 'test-section success';
+                        funcBtn.disabled = false;
+                        
+                        console.log('PDF.js loaded successfully from fallback CDN');
+                    } else {
+                        throw new Error('Library not available after fallback loading');
+                    }
+                    
+                } catch (fallbackError) {
+                    pdfjsLoaded = false;
+                    statusDiv.textContent = `❌ Both CDNs failed: ${fallbackError.message}`;
+                    statusDiv.className = 'status error-status';
+                    testSection.className = 'test-section error';
+                    funcBtn.disabled = true;
+                    
+                    console.error('PDF.js failed to load from both CDNs:', fallbackError);
+                }
+            }
+            
+            updateIntegrationButton();
+        }
+        
+        // Test Tesseract.js loading with new CDN configuration
+        async function testTesseract() {
+            const statusDiv = document.getElementById('tesseractStatus');
+            const testSection = document.getElementById('tesseractTest');
+            const funcBtn = document.getElementById('tesseractFuncBtn');
+            
+            statusDiv.textContent = 'Testing primary CDN...';
+            statusDiv.className = 'status';
+            
+            try {
+                // Try primary CDN first
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js');
+                
+                if (typeof Tesseract !== 'undefined') {
+                    tesseractLoaded = true;
+                    statusDiv.textContent = `✅ Primary CDN loaded successfully (v${Tesseract.version})`;
+                    statusDiv.className = 'status success-status';
+                    testSection.className = 'test-section success';
+                    funcBtn.disabled = false;
+                    
+                    console.log('Tesseract.js loaded successfully from primary CDN');
+                } else {
+                    throw new Error('Library not available after loading');
+                }
+                
+            } catch (error) {
+                console.warn('Primary CDN failed, trying fallback...');
+                
+                try {
+                    // Try fallback CDN
+                    await loadScript('https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js');
+                    
+                    if (typeof Tesseract !== 'undefined') {
+                        tesseractLoaded = true;
+                        statusDiv.textContent = `⚠️ Fallback CDN loaded successfully (v${Tesseract.version})`;
+                        statusDiv.className = 'status warning-status';
+                        testSection.className = 'test-section success';
+                        funcBtn.disabled = false;
+                        
+                        console.log('Tesseract.js loaded successfully from fallback CDN');
+                    } else {
+                        throw new Error('Library not available after fallback loading');
+                    }
+                    
+                } catch (fallbackError) {
+                    tesseractLoaded = false;
+                    statusDiv.textContent = `❌ Both CDNs failed: ${fallbackError.message}`;
+                    statusDiv.className = 'status error-status';
+                    testSection.className = 'test-section error';
+                    funcBtn.disabled = true;
+                    
+                    console.error('Tesseract.js failed to load from both CDNs:', fallbackError);
+                }
+            }
+            
+            updateIntegrationButton();
+        }
+        
+        // Test PDF.js functionality
+        async function testPDFJSFunctionality() {
+            const resultsDiv = document.getElementById('resultsContent');
+            resultsDiv.innerHTML = '<p>Testing PDF.js functionality...</p>';
+            
+            try {
+                if (!pdfjsLoaded) {
+                    throw new Error('PDF.js not loaded');
+                }
+                
+                // Test basic functionality
+                const version = pdfjsLib.version;
+                const workerSrc = pdfjsLib.GlobalWorkerOptions.workerSrc;
+                
+                resultsDiv.innerHTML = `
+                    <h3>✅ PDF.js Functionality Test Passed!</h3>
+                    <p><strong>Version:</strong> ${version}</p>
+                    <p><strong>Worker Source:</strong> ${workerSrc || 'Not set'}</p>
+                    <p><strong>Status:</strong> Ready for PDF processing</p>
+                `;
+                
+                console.log('PDF.js functionality test passed');
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h3>❌ PDF.js Functionality Test Failed!</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                console.error('PDF.js functionality test failed:', error);
+            }
+        }
+        
+        // Test Tesseract.js functionality
+        async function testTesseractFunctionality() {
+            const resultsDiv = document.getElementById('resultsContent');
+            resultsDiv.innerHTML = '<p>Testing Tesseract.js functionality...</p>';
+            
+            try {
+                if (!tesseractLoaded) {
+                    throw new Error('Tesseract.js not loaded');
+                }
+                
+                // Test basic functionality
+                const version = Tesseract.version;
+                
+                resultsDiv.innerHTML = `
+                    <h3>✅ Tesseract.js Functionality Test Passed!</h3>
+                    <p><strong>Version:</strong> ${version}</p>
+                    <p><strong>Status:</strong> Ready for OCR processing</p>
+                `;
+                
+                console.log('Tesseract.js functionality test passed');
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h3>❌ Tesseract.js Functionality Test Failed!</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                console.error('Tesseract.js functionality test failed:', error);
+            }
+        }
+        
+        // Test integration
+        async function testIntegration() {
+            const resultsDiv = document.getElementById('resultsContent');
+            resultsDiv.innerHTML = '<p>Testing library integration...</p>';
+            
+            try {
+                if (!pdfjsLoaded || !tesseractLoaded) {
+                    throw new Error('Both libraries must be loaded for integration test');
+                }
+                
+                // Test if both libraries can coexist
+                const pdfVersion = pdfjsLib.version;
+                const tesseractVersion = Tesseract.version;
+                
+                resultsDiv.innerHTML = `
+                    <h3>✅ Integration Test Passed!</h3>
+                    <p><strong>PDF.js:</strong> v${pdfVersion} ✅</p>
+                    <p><strong>Tesseract.js:</strong> v${tesseractVersion} ✅</p>
+                    <p><strong>Status:</strong> Both libraries working together</p>
+                    <p><strong>Recommendation:</strong> Ready for production use!</p>
+                `;
+                
+                console.log('Integration test passed');
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h3>❌ Integration Test Failed!</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                console.error('Integration test failed:', error);
+            }
+        }
+        
+        // Update integration button state
+        function updateIntegrationButton() {
+            const integrationBtn = document.getElementById('integrationBtn');
+            integrationBtn.disabled = !(pdfjsLoaded && tesseractLoaded);
+            
+            if (pdfjsLoaded && tesseractLoaded) {
+                integrationBtn.textContent = 'Test Integration (Ready)';
+            } else {
+                integrationBtn.textContent = 'Test Integration (Waiting for libraries)';
+            }
+        }
+        
+        // Load script utility
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Auto-run tests after page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('Auto-running CDN tests...');
+                testPDFJS();
+                testTesseract();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

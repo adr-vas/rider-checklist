@@ -195,6 +195,33 @@ body {
     color: #991b1b;
 }
 
+/* Library Status */
+.library-status {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.status-item:last-child {
+    margin-bottom: 0;
+}
+
+.status-item .status-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
 /* Buttons */
 .button-group {
     display: flex;

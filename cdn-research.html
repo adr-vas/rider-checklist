@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN URL Research & Testing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .cdn-test {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .cdn-test h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .url {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 5px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .testing { background-color: #e2e3e5; color: #383d41; }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .recommendation {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 CDN URL Research & Testing</h1>
+    <p>This page tests various CDN URLs to find the most reliable ones for PDF.js and Tesseract.js.</p>
+    
+    <div class="recommendation">
+        <h3>🎯 Current Recommendation</h3>
+        <p><strong>PDF.js:</strong> <span class="url">https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js</span></p>
+        <p><strong>Tesseract.js:</strong> <span class="url">https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js</span></p>
+        <p>Let's test these and find alternatives if needed!</p>
+    </div>
+
+    <h2>📄 PDF.js CDN Tests</h2>
+    
+    <div class="cdn-test">
+        <h3>CDNJS (Cloudflare) - Primary</h3>
+        <div class="url">https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js</div>
+        <div id="cdnjs-pdf-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('cdnjs-pdf', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>UNPKG - Fallback</h3>
+        <div class="url">https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js</div>
+        <div id="unpkg-pdf-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('unpkg-pdf', 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>JSDelivr - Alternative</h3>
+        <div class="url">https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js</div>
+        <div id="jsdelivr-pdf-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('jsdelivr-pdf', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>Latest Version Test</h3>
+        <div class="url">https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js</div>
+        <div id="latest-pdf-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('latest-pdf', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js')">Test Now</button>
+    </div>
+
+    <h2>🔍 Tesseract.js CDN Tests</h2>
+    
+    <div class="cdn-test">
+        <h3>CDNJS (Cloudflare) - Primary</h3>
+        <div class="url">https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js</div>
+        <div id="cdnjs-tesseract-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('cdnjs-tesseract', 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>UNPKG - Fallback</h3>
+        <div class="url">https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js</div>
+        <div id="unpkg-tesseract-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('unpkg-tesseract', 'https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>JSDelivr - Alternative</h3>
+        <div class="url">https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js</div>
+        <div id="jsdelivr-tesseract-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('jsdelivr-tesseract', 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js')">Test Now</button>
+    </div>
+
+    <div class="cdn-test">
+        <h3>Latest Version Test</h3>
+        <div class="url">https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js</div>
+        <div id="latest-tesseract-status" class="status testing">Testing...</div>
+        <button onclick="testCDN('latest-tesseract', 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/dist/tesseract.min.js')">Test Now</button>
+    </div>
+
+    <button onclick="testAllCDNs()" style="background-color: #28a745; font-size: 16px; padding: 12px 24px;">🧪 Test All CDNs</button>
+
+    <div class="results" id="results">
+        <h3>📊 Test Results</h3>
+        <p>Click "Test All CDNs" to run comprehensive testing, or test individual CDNs above.</p>
+    </div>
+
+    <script>
+        const testResults = {};
+        
+        async function testCDN(id, url) {
+            const statusElement = document.getElementById(id + '-status');
+            statusElement.textContent = 'Testing...';
+            statusElement.className = 'status testing';
+            
+            try {
+                console.log(`Testing CDN: ${url}`);
+                
+                // Test if the URL is accessible
+                const response = await fetch(url, { 
+                    method: 'HEAD',
+                    mode: 'no-cors' // This helps avoid CORS issues
+                });
+                
+                // Test actual script loading
+                const script = document.createElement('script');
+                script.src = url;
+                
+                const scriptLoadPromise = new Promise((resolve, reject) => {
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Script failed to load'));
+                    // Timeout after 10 seconds
+                    setTimeout(() => reject(new Error('Timeout')), 10000);
+                });
+                
+                document.head.appendChild(script);
+                
+                await scriptLoadPromise;
+                
+                // Test if the library is actually available
+                let libraryAvailable = false;
+                let version = 'Unknown';
+                
+                if (url.includes('pdf.js') || url.includes('pdfjs-dist')) {
+                    if (typeof pdfjsLib !== 'undefined') {
+                        libraryAvailable = true;
+                        version = pdfjsLib.version || 'Unknown';
+                    }
+                } else if (url.includes('tesseract.js')) {
+                    if (typeof Tesseract !== 'undefined') {
+                        libraryAvailable = true;
+                        version = Tesseract.version || 'Unknown';
+                    }
+                }
+                
+                if (libraryAvailable) {
+                    statusElement.textContent = `✅ Success (v${version})`;
+                    statusElement.className = 'status success';
+                    testResults[id] = { status: 'success', version, url };
+                } else {
+                    statusElement.textContent = '⚠️ Loaded but not available';
+                    statusElement.className = 'status warning';
+                    testResults[id] = { status: 'warning', version, url };
+                }
+                
+                // Clean up
+                document.head.removeChild(script);
+                
+            } catch (error) {
+                console.error(`CDN test failed for ${url}:`, error);
+                statusElement.textContent = `❌ Failed: ${error.message}`;
+                statusElement.className = 'status error';
+                testResults[id] = { status: 'error', error: error.message, url };
+            }
+        }
+        
+        async function testAllCDNs() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>🧪 Testing All CDNs...</h3><p>This may take a few moments...</p>';
+            
+            const cdnTests = [
+                { id: 'cdnjs-pdf', url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js' },
+                { id: 'unpkg-pdf', url: 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js' },
+                { id: 'jsdelivr-pdf', url: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js' },
+                { id: 'latest-pdf', url: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js' },
+                { id: 'cdnjs-tesseract', url: 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js' },
+                { id: 'unpkg-tesseract', url: 'https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js' },
+                { id: 'jsdelivr-tesseract', url: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js' },
+                { id: 'latest-tesseract', url: 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/dist/tesseract.min.js' }
+            ];
+            
+            // Test each CDN with a small delay to avoid overwhelming
+            for (let i = 0; i < cdnTests.length; i++) {
+                await testCDN(cdnTests[i].id, cdnTests[i].url);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+            }
+            
+            // Show summary
+            showResultsSummary();
+        }
+        
+        function showResultsSummary() {
+            const resultsDiv = document.getElementById('results');
+            let summary = '<h3>📊 Test Results Summary</h3>';
+            
+            const successful = Object.values(testResults).filter(r => r.status === 'success');
+            const warnings = Object.values(testResults).filter(r => r.status === 'warning');
+            const errors = Object.values(testResults).filter(r => r.status === 'error');
+            
+            summary += `<p><strong>✅ Successful:</strong> ${successful.length}</p>`;
+            summary += `<p><strong>⚠️ Warnings:</strong> ${warnings.length}</p>`;
+            summary += `<p><strong>❌ Errors:</strong> ${errors.length}</p>`;
+            
+            if (successful.length > 0) {
+                summary += '<h4>🎯 Recommended CDN URLs:</h4>';
+                successful.forEach(result => {
+                    const library = result.url.includes('pdf') ? 'PDF.js' : 'Tesseract.js';
+                    summary += `<p><strong>${library}:</strong> <span class="url">${result.url}</span> (v${result.version})</p>`;
+                });
+            }
+            
+            if (errors.length > 0) {
+                summary += '<h4>❌ Failed CDNs:</h4>';
+                errors.forEach(result => {
+                    summary += `<p><span class="url">${result.url}</span> - ${result.error}</p>`;
+                });
+            }
+            
+            resultsDiv.innerHTML = summary;
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testAllCDNs();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

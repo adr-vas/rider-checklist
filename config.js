@@ -3,12 +3,15 @@
  */
 
 const CONFIG = {
-    // PDF.js Configuration
+    // PDF.js Configuration (using fastest CDNs based on testing)
     pdf: {
-        workerSrc: 'https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.js',
-        cMapUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/cmaps/',
+        workerSrc: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+        workerFallback: 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+        cMapFallback: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
         cMapPacked: true,
-        standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@4.4.168/standard_fonts/'
+        standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/',
+        standardFontDataFallback: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
     },
 
     // Tesseract.js Configuration

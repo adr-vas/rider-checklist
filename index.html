@@ -10,8 +10,88 @@
     <link rel="stylesheet" href="styles.css">
     
     <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+    <script>
+        // Load PDF.js with fallback
+        function loadScript(src, fallbackSrc) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => resolve(src);
+                script.onerror = () => {
+                    console.warn(`Failed to load ${src}, trying fallback...`);
+                    if (fallbackSrc) {
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = fallbackSrc;
+                        fallbackScript.onload = () => resolve(fallbackSrc);
+                        fallbackScript.onerror = () => reject(new Error(`Failed to load both ${src} and ${fallbackSrc}`));
+                        document.head.appendChild(fallbackScript);
+                    } else {
+                        reject(new Error(`Failed to load ${src}`));
+                    }
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load libraries with fallbacks
+        Promise.all([
+            loadScript(
+                'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+                'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js'
+            ).then(() => {
+                document.getElementById('pdfStatus').textContent = '✅ Loaded';
+                document.getElementById('pdfStatus').style.color = '#4CAF50';
+            }).catch(() => {
+                document.getElementById('pdfStatus').textContent = '❌ Failed';
+                document.getElementById('pdfStatus').style.color = '#f44336';
+            }),
+            loadScript(
+                'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js',
+                'https://unpkg.com/tesseract.js@5.0.5/dist/tesseract.min.js'
+            ).then(() => {
+                document.getElementById('tesseractStatus').textContent = '✅ Loaded';
+                document.getElementById('tesseractStatus').style.color = '#4CAF50';
+            }).catch(() => {
+                document.getElementById('tesseractStatus').textContent = '❌ Failed';
+                document.getElementById('tesseractStatus').style.color = '#f44336';
+            })
+        ]).then(() => {
+            console.log('All libraries loaded successfully');
+            // Update main status message
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.querySelector('.status-icon').textContent = '✅';
+            statusMessage.querySelector('.status-text').textContent = 'Ready to process rider documents';
+            
+            // Show library status
+            document.getElementById('libraryStatus').style.display = 'block';
+        }).catch(error => {
+            console.error('Failed to load libraries:', error);
+            // Update main status message
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.querySelector('.status-icon').textContent = '⚠️';
+            statusMessage.querySelector('.status-text').textContent = 'Some libraries failed to load. Some features may be disabled.';
+            
+            // Show library status
+            document.getElementById('libraryStatus').style.display = 'block';
+        });
+        
+        // Test library functionality after a delay
+        setTimeout(() => {
+            if (typeof pdfjsLib !== 'undefined') {
+                console.log('PDF.js test: Library is available');
+                console.log('PDF.js version:', pdfjsLib.version);
+            } else {
+                console.error('PDF.js test: Library is NOT available');
+            }
+            
+            if (typeof Tesseract !== 'undefined') {
+                console.log('Tesseract.js test: Library is available');
+                console.log('Tesseract.js version:', Tesseract.version);
+            } else {
+                console.error('Tesseract.js test: Library is NOT available');
+            }
+        }, 3000);
+    </script>
 </head>
 <body>
     <!-- Header -->
@@ -40,7 +120,18 @@
                 
                 <div class="status-message" id="statusMessage">
                     <span class="status-icon">ℹ️</span>
-                    <span class="status-text">Ready to process rider documents</span>
+                    <span class="status-text">Loading libraries...</span>
+                </div>
+                
+                <div class="library-status" id="libraryStatus" style="display: none;">
+                    <div class="status-item">
+                        <span class="status-icon">📄</span>
+                        <span class="status-text">PDF.js: <span id="pdfStatus">Loading...</span></span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">🔍</span>
+                        <span class="status-text">Tesseract.js: <span id="tesseractStatus">Loading...</span></span>
+                    </div>
                 </div>
                 
                 <div class="button-group">
@@ -145,7 +236,6 @@
       <script>
           // Check library loading status
           window.addEventListener('load', function() {
-              const loadingDiv = document.getElementById('libraryLoading');
               let librariesLoaded = 0;
               const totalLibraries = 2;
               let retryCount = 0;
@@ -162,19 +252,12 @@
                   }
                   
                   if (librariesLoaded === totalLibraries) {
-                      // All libraries loaded
-                      if (loadingDiv) {
-                          loadingDiv.style.background = '#4CAF50';
-                          loadingDiv.innerHTML = '✅ All libraries loaded successfully!';
-                          setTimeout(() => {
-                              loadingDiv.style.display = 'none';
-                          }, 2000);
-                      }
+                      console.log('✅ All libraries loaded successfully!');
+                      // Hide any error messages
+                      const errorDivs = document.querySelectorAll('[style*="background:#ff6b6b"]');
+                      errorDivs.forEach(div => div.style.display = 'none');
                   } else if (librariesLoaded < totalLibraries) {
-                      // Some libraries still loading
-                      if (loadingDiv) {
-                          loadingDiv.innerHTML = `🔄 Loading libraries... (${librariesLoaded}/${totalLibraries})`;
-                      }
+                      console.log(`🔄 Loading libraries... (${librariesLoaded}/${totalLibraries})`);
                       
                       // Check again in 1 second
                       setTimeout(checkLibraries, 1000);
@@ -183,18 +266,15 @@
               
               function retryLibraries() {
                   if (retryCount >= maxRetries) {
-                      if (loadingDiv) {
-                          loadingDiv.style.background = '#ff6b6b';
-                          loadingDiv.innerHTML = '⚠️ Some libraries failed to load. Some features may be disabled.';
-                      }
+                      console.error('Library loading failed after retries');
                       
                       if (typeof pdfjsLib === 'undefined') {
                           console.error('PDF.js failed to load after retries');
-                          document.body.innerHTML += '<div style="position:fixed;top:50px;left:0;right:0;background:#ff6b6b;color:white;padding:10px;text-align:center;z-index:9999;">⚠️ PDF.js library failed to load. PDF processing will be disabled.</div>';
+                          showLibraryError('PDF.js library failed to load. PDF processing will be disabled.', 'pdf-error');
                       }
                       if (typeof Tesseract === 'undefined') {
                           console.error('Tesseract.js failed to load after retries');
-                          document.body.innerHTML += '<div style="position:fixed;top:80px;left:0;right:0;background:#ff6b6b;color:white;padding:10px;text-align:center;z-index:9999;">⚠️ Tesseract.js library failed to load. OCR processing will be disabled.</div>';
+                          showLibraryError('Tesseract.js library failed to load. OCR processing will be disabled.', 'tesseract-error');
                       }
                       return;
                   }
@@ -202,15 +282,24 @@
                   retryCount++;
                   console.log(`Retrying library loading (attempt ${retryCount}/${maxRetries})`);
                   
-                  if (loadingDiv) {
-                      loadingDiv.style.background = '#ff9800';
-                      loadingDiv.innerHTML = `🔄 Retrying library loading... (attempt ${retryCount}/${maxRetries})`;
-                  }
-                  
                   // Wait 2 seconds before retry
                   setTimeout(() => {
                       checkLibraries();
                   }, 2000);
+              }
+              
+              function showLibraryError(message, id) {
+                  // Remove existing error with same ID
+                  const existingError = document.getElementById(id);
+                  if (existingError) {
+                      existingError.remove();
+                  }
+                  
+                  const errorDiv = document.createElement('div');
+                  errorDiv.id = id;
+                  errorDiv.style.cssText = 'position:fixed;top:50px;left:0;right:0;background:#ff6b6b;color:white;padding:10px;text-align:center;z-index:9999;font-size:14px;';
+                  errorDiv.innerHTML = `⚠️ ${message}`;
+                  document.body.appendChild(errorDiv);
               }
               
               // Initial check

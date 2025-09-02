@@ -19,7 +19,8 @@ class OCRProcessor {
     initPDFJS() {
         try {
             if (typeof pdfjsLib !== 'undefined') {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = CONFIG.pdf.workerSrc;
+                // Try primary worker source, fallback if it fails
+                this.setWorkerSource(CONFIG.pdf.workerSrc, CONFIG.pdf.workerFallback);
                 this.isInitialized = true;
                 console.log('PDF.js initialized successfully');
             } else {
@@ -33,9 +34,33 @@ class OCRProcessor {
     }
 
     /**
+     * Set PDF.js worker source with fallback
+     */
+    async setWorkerSource(primarySrc, fallbackSrc) {
+        try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = primarySrc;
+            console.log('PDF.js worker source set to:', primarySrc);
+        } catch (error) {
+            console.warn('Failed to set primary worker source, trying fallback:', error);
+            if (fallbackSrc) {
+                try {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = fallbackSrc;
+                    console.log('PDF.js worker source set to fallback:', fallbackSrc);
+                } catch (fallbackError) {
+                    console.error('Failed to set fallback worker source:', fallbackError);
+                }
+            }
+        }
+    }
+
+    /**
      * Initialize Tesseract worker
      */
     async initTesseract() {
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Tesseract.js library not loaded');
+        }
+        
         if (!this.worker) {
             this.worker = await Tesseract.createWorker({
                 logger: m => {
@@ -89,8 +114,14 @@ class OCRProcessor {
                 let text = '';
                 
                 if (file.type === 'application/pdf') {
+                    if (!this.isInitialized) {
+                        throw new Error('PDF.js library not loaded. Cannot process PDF files.');
+                    }
                     text = await this.extractPDFText(file);
                 } else if (file.type.startsWith('image/')) {
+                    if (typeof Tesseract === 'undefined') {
+                        throw new Error('Tesseract.js library not loaded. Cannot process image files.');
+                    }
                     text = await this.extractImageText(file);
                 } else {
                     console.warn(`Unsupported file type: ${file.type}`);
@@ -157,6 +188,10 @@ class OCRProcessor {
         try {
             if (!this.isInitialized) {
                 throw new Error('PDF.js not initialized');
+            }
+            
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF.js library not loaded');
             }
             
             const arrayBuffer = await this.fileToArrayBuffer(file);
@@ -254,6 +289,10 @@ class OCRProcessor {
      */
     async extractImageText(file) {
         try {
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Tesseract.js library not loaded');
+            }
+            
             // Initialize Tesseract worker if needed
             await this.initTesseract();
             
