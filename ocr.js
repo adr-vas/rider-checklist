@@ -17,11 +17,18 @@ class OCRProcessor {
      * Initialize PDF.js configuration
      */
     initPDFJS() {
-        if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = CONFIG.pdf.workerSrc;
-            this.isInitialized = true;
-        } else {
-            console.error('PDF.js library not loaded');
+        try {
+            if (typeof pdfjsLib !== 'undefined') {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = CONFIG.pdf.workerSrc;
+                this.isInitialized = true;
+                console.log('PDF.js initialized successfully');
+            } else {
+                console.error('PDF.js library not loaded');
+                this.isInitialized = false;
+            }
+        } catch (error) {
+            console.error('Error initializing PDF.js:', error);
+            this.isInitialized = false;
         }
     }
 
@@ -32,12 +39,17 @@ class OCRProcessor {
         if (!this.worker) {
             this.worker = await Tesseract.createWorker({
                 logger: m => {
+                    // Only send serializable data to avoid DataCloneError
                     if (this.progressCallback && m.status === 'recognizing text') {
-                        this.progressCallback({
-                            type: 'ocr',
-                            progress: m.progress,
-                            message: `OCR: ${Math.round(m.progress * 100)}%`
-                        });
+                        try {
+                            this.progressCallback({
+                                type: 'ocr',
+                                progress: m.progress || 0,
+                                message: `OCR: ${Math.round((m.progress || 0) * 100)}%`
+                            });
+                        } catch (error) {
+                            console.warn('Progress callback error:', error);
+                        }
                     }
                 }
             });
@@ -60,13 +72,17 @@ class OCRProcessor {
             const file = files[i];
             
             if (progressCallback) {
-                progressCallback({
-                    type: 'file',
-                    current: i + 1,
-                    total: files.length,
-                    filename: file.name,
-                    message: `Processing ${file.name} (${i + 1}/${files.length})`
-                });
+                try {
+                    progressCallback({
+                        type: 'file',
+                        current: i + 1,
+                        total: files.length,
+                        filename: file.name,
+                        message: `Processing ${file.name} (${i + 1}/${files.length})`
+                    });
+                } catch (error) {
+                    console.warn('Progress callback error:', error);
+                }
             }
             
             try {
@@ -103,18 +119,26 @@ class OCRProcessor {
                 });
                 
                 if (progressCallback) {
-                    progressCallback({
-                        type: 'error',
-                        filename: file.name,
-                        message: `Error processing ${file.name}: ${error.message}`
-                    });
+                    try {
+                        progressCallback({
+                            type: 'error',
+                            filename: file.name,
+                            message: `Error processing ${file.name}: ${error.message || 'Unknown error'}`
+                        });
+                    } catch (callbackError) {
+                        console.warn('Error callback error:', callbackError);
+                    }
                 }
             }
         }
         
         // Clean up Tesseract worker if initialized
         if (this.worker) {
-            await this.worker.terminate();
+            try {
+                await this.worker.terminate();
+            } catch (error) {
+                console.warn('Error terminating Tesseract worker:', error);
+            }
             this.worker = null;
         }
         
@@ -130,40 +154,49 @@ class OCRProcessor {
      * Extract text from PDF
      */
     async extractPDFText(file) {
-        if (!this.isInitialized) {
-            throw new Error('PDF.js not initialized');
-        }
-        
-        const arrayBuffer = await this.fileToArrayBuffer(file);
-        const pdf = await pdfjsLib.getDocument({
-            data: arrayBuffer,
-            cMapUrl: CONFIG.pdf.cMapUrl,
-            cMapPacked: CONFIG.pdf.cMapPacked
-        }).promise;
-        
-        let fullText = '';
-        const numPages = pdf.numPages;
-        
-        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            if (this.progressCallback) {
-                this.progressCallback({
-                    type: 'pdf',
-                    current: pageNum,
-                    total: numPages,
-                    progress: pageNum / numPages,
-                    message: `Extracting page ${pageNum} of ${numPages}`
-                });
+        try {
+            if (!this.isInitialized) {
+                throw new Error('PDF.js not initialized');
             }
             
-            const page = await pdf.getPage(pageNum);
-            const textContent = await page.getTextContent();
+            const arrayBuffer = await this.fileToArrayBuffer(file);
+            const pdf = await pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: CONFIG.pdf.cMapUrl,
+                cMapPacked: CONFIG.pdf.cMapPacked
+            }).promise;
             
-            // Process text items and maintain layout
-            const pageText = this.processTextContent(textContent);
-            fullText += pageText + '\n\n';
+            let fullText = '';
+            const numPages = pdf.numPages;
+            
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                if (this.progressCallback) {
+                    try {
+                        this.progressCallback({
+                            type: 'pdf',
+                            current: pageNum,
+                            total: numPages,
+                            progress: pageNum / numPages,
+                            message: `Extracting page ${pageNum} of ${numPages}`
+                        });
+                    } catch (error) {
+                        console.warn('PDF progress callback error:', error);
+                    }
+                }
+                
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                
+                // Process text items and maintain layout
+                const pageText = this.processTextContent(textContent);
+                fullText += pageText + '\n\n';
+            }
+            
+            return this.cleanExtractedText(fullText);
+        } catch (error) {
+            console.error('Error extracting PDF text:', error);
+            return '';
         }
-        
-        return this.cleanExtractedText(fullText);
     }
 
     /**
@@ -220,16 +253,21 @@ class OCRProcessor {
      * Extract text from image using OCR
      */
     async extractImageText(file) {
-        // Initialize Tesseract worker if needed
-        await this.initTesseract();
-        
-        // Convert file to data URL for Tesseract
-        const dataUrl = await this.fileToDataURL(file);
-        
-        // Perform OCR
-        const { data: { text } } = await this.worker.recognize(dataUrl);
-        
-        return this.cleanExtractedText(text);
+        try {
+            // Initialize Tesseract worker if needed
+            await this.initTesseract();
+            
+            // Convert file to data URL for Tesseract
+            const dataUrl = await this.fileToDataURL(file);
+            
+            // Perform OCR
+            const { data: { text } } = await this.worker.recognize(dataUrl);
+            
+            return this.cleanExtractedText(text);
+        } catch (error) {
+            console.error('Error extracting image text:', error);
+            return '';
+        }
     }
 
     /**
@@ -260,10 +298,14 @@ class OCRProcessor {
      */
     fileToArrayBuffer(file) {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
+            try {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                reject(error);
+            }
         });
     }
 
@@ -272,10 +314,14 @@ class OCRProcessor {
      */
     fileToDataURL(file) {
         return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+            try {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            } catch (error) {
+                reject(error);
+            }
         });
     }
 
@@ -286,44 +332,55 @@ class OCRProcessor {
         return new Promise((resolve) => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Set canvas size
-                canvas.width = img.width;
-                canvas.height = img.height;
-                
-                // Draw image
-                ctx.drawImage(img, 0, 0);
-                
-                // Get image data
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-                
-                // Convert to grayscale and increase contrast
-                for (let i = 0; i < data.length; i += 4) {
-                    // Convert to grayscale
-                    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
                     
-                    // Increase contrast
-                    const contrast = 1.5;
-                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                    const newValue = factor * (gray - 128) + 128;
+                    // Set canvas size
+                    canvas.width = img.width;
+                    canvas.height = img.height;
                     
-                    // Apply threshold for better text recognition
-                    const threshold = newValue > 180 ? 255 : (newValue < 75 ? 0 : newValue);
+                    // Draw image
+                    ctx.drawImage(img, 0, 0);
                     
-                    data[i] = threshold;
-                    data[i + 1] = threshold;
-                    data[i + 2] = threshold;
+                    // Get image data
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    // Convert to grayscale and increase contrast
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Convert to grayscale
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        
+                        // Increase contrast
+                        const contrast = 1.5;
+                        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                        const newValue = factor * (gray - 128) + 128;
+                        
+                        // Apply threshold for better text recognition
+                        const threshold = newValue > 180 ? 255 : (newValue < 75 ? 0 : newValue);
+                        
+                        data[i] = threshold;
+                        data[i + 1] = threshold;
+                        data[i + 2] = threshold;
+                    }
+                    
+                    // Put processed image data back
+                    ctx.putImageData(imageData, 0, 0);
+                    
+                    // Return processed image as data URL
+                    resolve(canvas.toDataURL('image/png'));
+                } catch (error) {
+                    console.error('Error preprocessing image:', error);
+                    resolve(dataUrl); // Return original if processing fails
                 }
-                
-                // Put processed image data back
-                ctx.putImageData(imageData, 0, 0);
-                
-                // Return processed image as data URL
-                resolve(canvas.toDataURL('image/png'));
             };
+            
+            img.onerror = () => {
+                console.error('Error loading image for preprocessing');
+                resolve(dataUrl); // Return original if loading fails
+            };
+            
             img.src = dataUrl;
         });
     }
@@ -358,11 +415,21 @@ class OCRProcessor {
                 const regionDataUrl = canvas.toDataURL('image/png');
                 
                 // Perform OCR on region
-                await this.initTesseract();
-                const { data: { text } } = await this.worker.recognize(regionDataUrl);
-                
-                resolve(text);
+                try {
+                    await this.initTesseract();
+                    const { data: { text } } = await this.worker.recognize(regionDataUrl);
+                    resolve(text);
+                } catch (error) {
+                    console.error('Error in region OCR:', error);
+                    resolve('');
+                }
             };
+            
+            img.onerror = () => {
+                console.error('Error loading image for region OCR');
+                resolve('');
+            };
+            
             img.src = dataUrl;
         });
     }
@@ -374,16 +441,20 @@ class OCRProcessor {
         const results = [];
         const chunks = [];
         
-        // Split files into chunks for parallel processing
-        for (let i = 0; i < files.length; i += maxConcurrent) {
-            chunks.push(files.slice(i, i + maxConcurrent));
-        }
-        
-        // Process chunks
-        for (const chunk of chunks) {
-            const chunkPromises = chunk.map(file => this.processFile(file));
-            const chunkResults = await Promise.all(chunkPromises);
-            results.push(...chunkResults);
+        try {
+            // Split files into chunks for parallel processing
+            for (let i = 0; i < files.length; i += maxConcurrent) {
+                chunks.push(files.slice(i, i + maxConcurrent));
+            }
+            
+            // Process chunks
+            for (const chunk of chunks) {
+                const chunkPromises = chunk.map(file => this.processFile(file));
+                const chunkResults = await Promise.all(chunkPromises);
+                results.push(...chunkResults);
+            }
+        } catch (error) {
+            console.error('Error in batch processing:', error);
         }
         
         return results;
@@ -412,7 +483,7 @@ class OCRProcessor {
                 filename: file.name,
                 text: '',
                 success: false,
-                error: error.message
+                error: error.message || 'Unknown error'
             };
         }
     }
@@ -436,7 +507,11 @@ class OCRProcessor {
      */
     async cleanup() {
         if (this.worker) {
-            await this.worker.terminate();
+            try {
+                await this.worker.terminate();
+            } catch (error) {
+                console.warn('Error terminating Tesseract worker:', error);
+            }
             this.worker = null;
         }
     }

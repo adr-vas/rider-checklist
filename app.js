@@ -5,16 +5,20 @@
 
 class RiderApp {
     constructor() {
-        this.filesCache = [];
-        this.extractedText = '';
-        this.parsedData = null;
-        this.isProcessing = false;
-        
-        // Initialize on DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.init());
-        } else {
-            this.init();
+        try {
+            this.filesCache = [];
+            this.extractedText = '';
+            this.parsedData = null;
+            this.isProcessing = false;
+            
+            // Initialize on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => this.init());
+            } else {
+                this.init();
+            }
+        } catch (error) {
+            console.error('Error in constructor:', error);
         }
     }
 
@@ -22,127 +26,215 @@ class RiderApp {
      * Initialize application
      */
     init() {
-        console.log('Initializing Rider Checklist Builder...');
-        
-        // Initialize modules
-        this.initializeModules();
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        // Check for saved state
-        this.checkSavedState();
-        
-        // Setup autosave
-        this.setupAutosave();
-        
-        // Show welcome message
-        this.showWelcome();
+        try {
+            console.log('Initializing Rider Checklist Builder...');
+            
+            // Initialize modules
+            this.initializeModules();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Check for saved state
+            this.checkSavedState();
+            
+            // Setup autosave
+            this.setupAutosave();
+            
+            // Show welcome message
+            this.showWelcome();
+        } catch (error) {
+            console.error('Error initializing application:', error);
+            showToast('Error initializing application', 'error');
+        }
     }
 
     /**
      * Initialize all modules
      */
     initializeModules() {
-        // Toast system
-        Toast.init();
-        
-        // Check for API keys
-        this.checkAPIKeys();
-        
-        // Initialize drag and drop
-        this.initDragDrop();
+        try {
+            // Toast system
+            try {
+                Toast.init();
+            } catch (error) {
+                console.error('Error initializing Toast system:', error);
+            }
+            
+            // Check for API keys
+            try {
+                this.checkAPIKeys();
+            } catch (error) {
+                console.error('Error checking API keys:', error);
+            }
+            
+            // Check for required libraries
+            try {
+                this.checkRequiredLibraries();
+            } catch (error) {
+                console.error('Error checking required libraries:', error);
+            }
+            
+            // Initialize drag and drop
+            try {
+                this.initDragDrop();
+            } catch (error) {
+                console.error('Error initializing drag and drop:', error);
+            }
+        } catch (error) {
+            console.error('Error initializing modules:', error);
+        }
     }
 
     /**
      * Setup all event listeners
      */
     setupEventListeners() {
-        // File upload
-        const fileInput = DOM.get('#fileInput');
-        const uploadArea = DOM.get('#uploadArea');
-        const processBtn = DOM.get('#processBtn');
-        const clearBtn = DOM.get('#clearBtn');
-        
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        try {
+            // File upload
+            const fileInput = DOM.get('#fileInput');
+            const uploadArea = DOM.get('#uploadArea');
+            const processBtn = DOM.get('#processBtn');
+            const clearBtn = DOM.get('#clearBtn');
+            
+            if (fileInput) {
+                try {
+                    fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                } catch (error) {
+                    console.error('Error adding file input change listener:', error);
+                }
+            }
+            
+            if (uploadArea) {
+                try {
+                    uploadArea.addEventListener('click', () => fileInput?.click());
+                } catch (error) {
+                    console.error('Error adding upload area click listener:', error);
+                }
+            }
+            
+            if (processBtn) {
+                try {
+                    processBtn.addEventListener('click', () => this.processFiles());
+                } catch (error) {
+                    console.error('Error adding process button click listener:', error);
+                }
+            }
+            
+            if (clearBtn) {
+                try {
+                    clearBtn.addEventListener('click', () => this.clearAll());
+                } catch (error) {
+                    console.error('Error adding clear button click listener:', error);
+                }
+            }
+            
+            // Analysis section
+            const generateBtn = DOM.get('#generateBtn');
+            const editTextBtn = DOM.get('#editTextBtn');
+            const reanalyzeBtn = DOM.get('#reanalyzeBtn');
+            const closeEditorBtn = DOM.get('#closeEditorBtn');
+            
+            if (generateBtn) {
+                try {
+                    generateBtn.addEventListener('click', () => this.generateChecklist());
+                } catch (error) {
+                    console.error('Error adding generate button click listener:', error);
+                }
+            }
+            
+            if (editTextBtn) {
+                try {
+                    editTextBtn.addEventListener('click', () => this.showTextEditor());
+                } catch (error) {
+                    console.error('Error adding edit text button click listener:', error);
+                }
+            }
+            
+            if (reanalyzeBtn) {
+                try {
+                    reanalyzeBtn.addEventListener('click', () => this.reanalyzeText());
+                } catch (error) {
+                    console.error('Error adding reanalyze button click listener:', error);
+                }
+            }
+            
+            if (closeEditorBtn) {
+                try {
+                    closeEditorBtn.addEventListener('click', () => this.hideTextEditor());
+                } catch (error) {
+                    console.error('Error adding close editor button click listener:', error);
+                }
+            }
+            
+            // Keyboard shortcuts
+            try {
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            } catch (error) {
+                console.error('Error adding keyboard event listener:', error);
+            }
+        } catch (error) {
+            console.error('Error setting up event listeners:', error);
         }
-        
-        if (uploadArea) {
-            uploadArea.addEventListener('click', () => fileInput?.click());
-        }
-        
-        if (processBtn) {
-            processBtn.addEventListener('click', () => this.processFiles());
-        }
-        
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => this.clearAll());
-        }
-        
-        // Analysis section
-        const generateBtn = DOM.get('#generateBtn');
-        const editTextBtn = DOM.get('#editTextBtn');
-        const reanalyzeBtn = DOM.get('#reanalyzeBtn');
-        const closeEditorBtn = DOM.get('#closeEditorBtn');
-        
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => this.generateChecklist());
-        }
-        
-        if (editTextBtn) {
-            editTextBtn.addEventListener('click', () => this.showTextEditor());
-        }
-        
-        if (reanalyzeBtn) {
-            reanalyzeBtn.addEventListener('click', () => this.reanalyzeText());
-        }
-        
-        if (closeEditorBtn) {
-            closeEditorBtn.addEventListener('click', () => this.hideTextEditor());
-        }
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     }
 
     /**
      * Initialize drag and drop
      */
     initDragDrop() {
-        const uploadArea = DOM.get('#uploadArea');
-        if (!uploadArea) return;
-        
-        // Prevent default drag behaviors
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+        try {
+            const uploadArea = DOM.get('#uploadArea');
+            if (!uploadArea) return;
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                try {
+                    uploadArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+                    document.body.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+                } catch (error) {
+                    console.error(`Error adding drag event listener for ${eventName}:`, error);
+                }
             });
-            document.body.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                try {
+                    uploadArea.addEventListener(eventName, () => {
+                        uploadArea.classList.add('drag-over');
+                    });
+                } catch (error) {
+                    console.error(`Error adding drag highlight listener for ${eventName}:`, error);
+                }
             });
-        });
-        
-        // Highlight drop area when item is dragged over it
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.add('drag-over');
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                try {
+                    uploadArea.addEventListener(eventName, () => {
+                        uploadArea.classList.remove('drag-over');
+                    });
+                } catch (error) {
+                    console.error(`Error adding drag unhighlight listener for ${eventName}:`, error);
+                }
             });
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.remove('drag-over');
-            });
-        });
-        
-        // Handle dropped files
-        uploadArea.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            this.handleFiles(files);
-        });
+            
+            // Handle dropped files
+            try {
+                uploadArea.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    this.handleFiles(files);
+                });
+            } catch (error) {
+                console.error('Error adding drop event listener:', error);
+            }
+        } catch (error) {
+            console.error('Error initializing drag and drop:', error);
+        }
     }
 
     /**
@@ -164,25 +256,30 @@ class RiderApp {
         const errors = [];
         
         Array.from(files).forEach(file => {
-            // Check file type
-            if (!FileUtils.isValidType(file)) {
-                errors.push(`${file.name}: Unsupported file type`);
-                return;
+            try {
+                // Check file type
+                if (!FileUtils.isValidType(file)) {
+                    errors.push(`${file.name}: Unsupported file type`);
+                    return;
+                }
+                
+                // Check file size
+                if (!FileUtils.isValidSize(file)) {
+                    errors.push(`${file.name}: File too large (max ${FileUtils.formatSize(CONFIG.upload.maxFileSize)})`);
+                    return;
+                }
+                
+                // Check duplicates
+                if (this.filesCache.some(f => f.name === file.name && f.size === file.size)) {
+                    errors.push(`${file.name}: Already added`);
+                    return;
+                }
+                
+                validFiles.push(file);
+            } catch (error) {
+                console.error(`Error validating file ${file.name}:`, error);
+                errors.push(`${file.name}: Validation error`);
             }
-            
-            // Check file size
-            if (!FileUtils.isValidSize(file)) {
-                errors.push(`${file.name}: File too large (max ${FileUtils.formatSize(CONFIG.upload.maxFileSize)})`);
-                return;
-            }
-            
-            // Check duplicates
-            if (this.filesCache.some(f => f.name === file.name && f.size === file.size)) {
-                errors.push(`${file.name}: Already added`);
-                return;
-            }
-            
-            validFiles.push(file);
         });
         
         // Show errors
@@ -192,13 +289,18 @@ class RiderApp {
         
         // Add valid files
         if (validFiles.length > 0) {
-            this.filesCache.push(...validFiles);
-            this.updateFileList();
-            this.updateStatus(`${this.filesCache.length} file(s) ready to process`, 'info');
-            
-            // Enable process button
-            const processBtn = DOM.get('#processBtn');
-            if (processBtn) processBtn.disabled = false;
+            try {
+                this.filesCache.push(...validFiles);
+                this.updateFileList();
+                this.updateStatus(`${this.filesCache.length} file(s) ready to process`, 'info');
+                
+                // Enable process button
+                const processBtn = DOM.get('#processBtn');
+                if (processBtn) processBtn.disabled = false;
+            } catch (error) {
+                console.error('Error adding files to cache:', error);
+                showToast('Error adding files to cache', 'error');
+            }
         }
     }
 
@@ -206,50 +308,65 @@ class RiderApp {
      * Update file list display
      */
     updateFileList() {
-        const fileList = DOM.get('#fileList');
-        if (!fileList) return;
-        
-        if (this.filesCache.length === 0) {
+        try {
+            const fileList = DOM.get('#fileList');
+            if (!fileList) return;
+            
+            if (this.filesCache.length === 0) {
+                fileList.innerHTML = '';
+                return;
+            }
+            
             fileList.innerHTML = '';
-            return;
-        }
-        
-        fileList.innerHTML = '';
-        
-        this.filesCache.forEach((file, index) => {
-            const fileItem = DOM.create('div', {
-                className: 'file-item',
-                innerHTML: `
-                    <div class="file-info">
-                        <span class="file-icon">📄</span>
-                        <span class="file-name">${file.name}</span>
-                        <span class="file-size">${FileUtils.formatSize(file.size)}</span>
-                    </div>
-                    <button class="file-remove" data-index="${index}">×</button>
-                `
+            
+            this.filesCache.forEach((file, index) => {
+                try {
+                    const fileItem = DOM.create('div', {
+                        className: 'file-item',
+                        innerHTML: `
+                            <div class="file-info">
+                                <span class="file-icon">📄</span>
+                                <span class="file-name">${file.name}</span>
+                                <span class="file-size">${FileUtils.formatSize(file.size)}</span>
+                            </div>
+                            <button class="file-remove" data-index="${index}">×</button>
+                        `
+                    });
+                    
+                    // Add remove handler
+                    const removeBtn = fileItem.querySelector('.file-remove');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', () => this.removeFile(index));
+                    }
+                    
+                    fileList.appendChild(fileItem);
+                } catch (error) {
+                    console.error(`Error creating file item for ${file.name}:`, error);
+                }
             });
-            
-            // Add remove handler
-            const removeBtn = fileItem.querySelector('.file-remove');
-            removeBtn.addEventListener('click', () => this.removeFile(index));
-            
-            fileList.appendChild(fileItem);
-        });
+        } catch (error) {
+            console.error('Error updating file list:', error);
+        }
     }
 
     /**
      * Remove file from list
      */
     removeFile(index) {
-        this.filesCache.splice(index, 1);
-        this.updateFileList();
-        
-        if (this.filesCache.length === 0) {
-            this.updateStatus('Ready to process rider documents', 'info');
-            const processBtn = DOM.get('#processBtn');
-            if (processBtn) processBtn.disabled = true;
-        } else {
-            this.updateStatus(`${this.filesCache.length} file(s) ready to process`, 'info');
+        try {
+            this.filesCache.splice(index, 1);
+            this.updateFileList();
+            
+            if (this.filesCache.length === 0) {
+                this.updateStatus('Ready to process rider documents', 'info');
+                const processBtn = DOM.get('#processBtn');
+                if (processBtn) processBtn.disabled = true;
+            } else {
+                this.updateStatus(`${this.filesCache.length} file(s) ready to process`, 'info');
+            }
+        } catch (error) {
+            console.error('Error removing file:', error);
+            showToast('Error removing file', 'error');
         }
     }
 
@@ -264,6 +381,12 @@ class RiderApp {
         
         if (this.isProcessing) {
             showToast('Already processing files', 'warning');
+            return;
+        }
+        
+        // Check if required libraries are available
+        if (typeof pdfjsLib === 'undefined' || typeof Tesseract === 'undefined') {
+            showToast('Required libraries not loaded. Please refresh the page.', 'error');
             return;
         }
         
@@ -583,31 +706,39 @@ class RiderApp {
      * Update status message
      */
     updateStatus(message, type = 'info') {
-        const statusDiv = DOM.get('#statusMessage');
-        if (!statusDiv) return;
-        
-        statusDiv.className = `status-message ${type}`;
-        
-        const icons = {
-            info: 'ℹ️',
-            success: '✅',
-            warning: '⚠️',
-            error: '❌'
-        };
-        
-        statusDiv.innerHTML = `
-            <span class="status-icon">${icons[type]}</span>
-            <span class="status-text">${message}</span>
-        `;
+        try {
+            const statusDiv = DOM.get('#statusMessage');
+            if (!statusDiv) return;
+            
+            statusDiv.className = `status-message ${type}`;
+            
+            const icons = {
+                info: 'ℹ️',
+                success: '✅',
+                warning: '⚠️',
+                error: '❌'
+            };
+            
+            statusDiv.innerHTML = `
+                <span class="status-icon">${icons[type]}</span>
+                <span class="status-text">${message}</span>
+            `;
+        } catch (error) {
+            console.error('Error updating status:', error);
+        }
     }
 
     /**
      * Show/hide processing overlay
      */
     showProcessing(show) {
-        const overlay = DOM.get('#processingOverlay');
-        if (overlay) {
-            overlay.classList.toggle('active', show);
+        try {
+            const overlay = DOM.get('#processingOverlay');
+            if (overlay) {
+                overlay.classList.toggle('active', show);
+            }
+        } catch (error) {
+            console.error('Error showing/hiding processing overlay:', error);
         }
     }
 
@@ -615,15 +746,19 @@ class RiderApp {
      * Update processing progress
      */
     updateProcessingProgress(progress) {
-        const text = DOM.get('#processingText');
-        const progressBar = DOM.get('#processingProgress');
-        
-        if (text) {
-            text.textContent = progress.message || 'Processing...';
-        }
-        
-        if (progressBar && progress.progress) {
-            progressBar.style.width = `${Math.round(progress.progress * 100)}%`;
+        try {
+            const text = DOM.get('#processingText');
+            const progressBar = DOM.get('#processingProgress');
+            
+            if (text) {
+                text.textContent = progress.message || 'Processing...';
+            }
+            
+            if (progressBar && progress.progress) {
+                progressBar.style.width = `${Math.round(progress.progress * 100)}%`;
+            }
+        } catch (error) {
+            console.error('Error updating processing progress:', error);
         }
     }
 
@@ -631,24 +766,33 @@ class RiderApp {
      * Handle keyboard shortcuts
      */
     handleKeyboard(event) {
-        // Ctrl/Cmd + O: Open files
-        if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
-            event.preventDefault();
-            DOM.get('#fileInput')?.click();
-        }
-        
-        // Ctrl/Cmd + S: Save
-        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-            event.preventDefault();
-            if (this.parsedData) {
-                checklistManager.saveState();
-                showToast('Progress saved', 'success');
+        try {
+            // Ctrl/Cmd + O: Open files
+            if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
+                event.preventDefault();
+                DOM.get('#fileInput')?.click();
             }
-        }
-        
-        // Escape: Close modal
-        if (event.key === 'Escape') {
-            this.closeChecklistModal();
+            
+            // Ctrl/Cmd + S: Save
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                if (this.parsedData) {
+                    try {
+                        checklistManager.saveState();
+                        showToast('Progress saved', 'success');
+                    } catch (error) {
+                        console.error('Error saving state:', error);
+                        showToast('Error saving progress', 'error');
+                    }
+                }
+            }
+            
+            // Escape: Close modal
+            if (event.key === 'Escape') {
+                this.closeChecklistModal();
+            }
+        } catch (error) {
+            console.error('Error handling keyboard event:', error);
         }
     }
 
@@ -656,9 +800,13 @@ class RiderApp {
      * Close checklist modal
      */
     closeChecklistModal() {
-        const modal = DOM.get('#checklistModal');
-        if (modal) {
-            modal.classList.remove('active');
+        try {
+            const modal = DOM.get('#checklistModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        } catch (error) {
+            console.error('Error closing checklist modal:', error);
         }
     }
 
@@ -666,20 +814,24 @@ class RiderApp {
      * Check for saved state
      */
     checkSavedState() {
-        const state = Storage.get(CONFIG.storage.checklistState);
-        
-        if (state && state.currentData) {
-            const lastSaved = state.lastSaved ? DateUtils.relative(state.lastSaved) : 'unknown time';
+        try {
+            const state = Storage.get(CONFIG.storage.checklistState);
             
-            const restore = confirm(`Found saved checklist from ${lastSaved}. Would you like to restore it?`);
-            
-            if (restore) {
-                this.parsedData = state.currentData;
-                this.displayDetectedInfo();
-                this.displayStructurePreview();
-                DOM.show('#analysisSection');
-                showToast('Previous checklist restored', 'success');
+            if (state && state.currentData) {
+                const lastSaved = state.lastSaved ? DateUtils.relative(state.lastSaved) : 'unknown time';
+                
+                const restore = confirm(`Found saved checklist from ${lastSaved}. Would you like to restore it?`);
+                
+                if (restore) {
+                    this.parsedData = state.currentData;
+                    this.displayDetectedInfo();
+                    this.displayStructurePreview();
+                    DOM.show('#analysisSection');
+                    showToast('Previous checklist restored', 'success');
+                }
             }
+        } catch (error) {
+            console.error('Error checking saved state:', error);
         }
     }
 
@@ -697,13 +849,38 @@ class RiderApp {
     }
 
     /**
+     * Check for required libraries
+     */
+    checkRequiredLibraries() {
+        // Check PDF.js
+        if (typeof pdfjsLib === 'undefined') {
+            console.warn('PDF.js library not loaded - PDF processing will be disabled');
+            showToast('PDF processing disabled - PDF.js not loaded', 'warning');
+        } else {
+            console.log('PDF.js library loaded successfully');
+        }
+        
+        // Check Tesseract.js
+        if (typeof Tesseract === 'undefined') {
+            console.warn('Tesseract.js library not loaded - OCR processing will be disabled');
+            showToast('OCR processing disabled - Tesseract.js not loaded', 'warning');
+        } else {
+            console.log('Tesseract.js library loaded successfully');
+        }
+    }
+
+    /**
      * Setup autosave
      */
     setupAutosave() {
         // Autosave every 30 seconds if there's data
         setInterval(() => {
-            if (this.parsedData && checklistManager.currentData) {
-                checklistManager.saveState();
+            try {
+                if (this.parsedData && checklistManager.currentData) {
+                    checklistManager.saveState();
+                }
+            } catch (error) {
+                console.error('Error in autosave:', error);
             }
         }, CONFIG.ui.autosaveInterval);
     }
@@ -712,27 +889,44 @@ class RiderApp {
      * Show welcome message
      */
     showWelcome() {
-        const hasVisited = Storage.get('hasVisitedBefore');
-        
-        if (!hasVisited) {
-            setTimeout(() => {
-                showToast('Welcome! Upload rider PDFs or images to get started', 'info', 5000);
-                Storage.set('hasVisitedBefore', true);
-            }, 1000);
+        try {
+            const hasVisited = Storage.get('hasVisitedBefore');
+            
+            if (!hasVisited) {
+                setTimeout(() => {
+                    try {
+                        showToast('Welcome! Upload rider PDFs or images to get started', 'info', 5000);
+                        Storage.set('hasVisitedBefore', true);
+                    } catch (error) {
+                        console.error('Error showing welcome toast:', error);
+                    }
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Error in showWelcome:', error);
         }
     }
 }
 
 // Make closeChecklistModal globally available
 window.closeChecklistModal = () => {
-    const modal = DOM.get('#checklistModal');
-    if (modal) {
-        modal.classList.remove('active');
+    try {
+        const modal = DOM.get('#checklistModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    } catch (error) {
+        console.error('Error closing checklist modal:', error);
     }
 };
 
 // Initialize application
-const app = new RiderApp();
-
-// Export for debugging
-window.riderApp = app;
+try {
+    const app = new RiderApp();
+    
+    // Export for debugging
+    window.riderApp = app;
+} catch (error) {
+    console.error('Error creating RiderApp instance:', error);
+    showToast('Error initializing application', 'error');
+}

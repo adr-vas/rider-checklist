@@ -140,5 +140,89 @@
     <script src="ocr.js"></script>
     <script src="checklist.js"></script>
     <script src="app.js"></script>
+
+      <!-- Library Loading Check -->
+      <script>
+          // Check library loading status
+          window.addEventListener('load', function() {
+              const loadingDiv = document.getElementById('libraryLoading');
+              let librariesLoaded = 0;
+              const totalLibraries = 2;
+              let retryCount = 0;
+              const maxRetries = 3;
+              
+              function checkLibraries() {
+                  if (typeof pdfjsLib !== 'undefined') {
+                      librariesLoaded++;
+                      console.log('PDF.js loaded successfully');
+                  }
+                  if (typeof Tesseract !== 'undefined') {
+                      librariesLoaded++;
+                      console.log('Tesseract.js loaded successfully');
+                  }
+                  
+                  if (librariesLoaded === totalLibraries) {
+                      // All libraries loaded
+                      if (loadingDiv) {
+                          loadingDiv.style.background = '#4CAF50';
+                          loadingDiv.innerHTML = '✅ All libraries loaded successfully!';
+                          setTimeout(() => {
+                              loadingDiv.style.display = 'none';
+                          }, 2000);
+                      }
+                  } else if (librariesLoaded < totalLibraries) {
+                      // Some libraries still loading
+                      if (loadingDiv) {
+                          loadingDiv.innerHTML = `🔄 Loading libraries... (${librariesLoaded}/${totalLibraries})`;
+                      }
+                      
+                      // Check again in 1 second
+                      setTimeout(checkLibraries, 1000);
+                  }
+              }
+              
+              function retryLibraries() {
+                  if (retryCount >= maxRetries) {
+                      if (loadingDiv) {
+                          loadingDiv.style.background = '#ff6b6b';
+                          loadingDiv.innerHTML = '⚠️ Some libraries failed to load. Some features may be disabled.';
+                      }
+                      
+                      if (typeof pdfjsLib === 'undefined') {
+                          console.error('PDF.js failed to load after retries');
+                          document.body.innerHTML += '<div style="position:fixed;top:50px;left:0;right:0;background:#ff6b6b;color:white;padding:10px;text-align:center;z-index:9999;">⚠️ PDF.js library failed to load. PDF processing will be disabled.</div>';
+                      }
+                      if (typeof Tesseract === 'undefined') {
+                          console.error('Tesseract.js failed to load after retries');
+                          document.body.innerHTML += '<div style="position:fixed;top:80px;left:0;right:0;background:#ff6b6b;color:white;padding:10px;text-align:center;z-index:9999;">⚠️ Tesseract.js library failed to load. OCR processing will be disabled.</div>';
+                      }
+                      return;
+                  }
+                  
+                  retryCount++;
+                  console.log(`Retrying library loading (attempt ${retryCount}/${maxRetries})`);
+                  
+                  if (loadingDiv) {
+                      loadingDiv.style.background = '#ff9800';
+                      loadingDiv.innerHTML = `🔄 Retrying library loading... (attempt ${retryCount}/${maxRetries})`;
+                  }
+                  
+                  // Wait 2 seconds before retry
+                  setTimeout(() => {
+                      checkLibraries();
+                  }, 2000);
+              }
+              
+              // Initial check
+              checkLibraries();
+              
+              // Final check after 15 seconds, then retry if needed
+              setTimeout(() => {
+                  if (librariesLoaded < totalLibraries) {
+                      retryLibraries();
+                  }
+              }, 15000);
+          });
+      </script>
 </body>
 </html>
