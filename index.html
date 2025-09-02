@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Rider Checklist Builder</title>
+    <meta name="description" content="Convert tour rider PDFs and images into interactive checklists">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>🎵 Universal Rider Checklist Builder</h1>
+            <p class="header-subtitle">Upload any tour rider document to generate an interactive, trackable checklist</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="card">
+                <h2>📤 Step 1: Upload Rider Documents</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <h3>Drop files here or click to browse</h3>
+                    <p>Supports PDF, JPG, PNG, and other image formats</p>
+                    <input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
+                </div>
+                
+                <div id="fileList" class="file-list"></div>
+                
+                <div class="status-message" id="statusMessage">
+                    <span class="status-icon">ℹ️</span>
+                    <span class="status-text">Ready to process rider documents</span>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" id="processBtn">
+                        <span class="btn-icon">🔍</span>
+                        Process Files
+                    </button>
+                    <button class="btn btn-secondary" id="clearBtn">
+                        <span class="btn-icon">🔄</span>
+                        Clear All
+                    </button>
+                </div>
+                
+                <div class="processing-overlay" id="processingOverlay">
+                    <div class="spinner"></div>
+                    <p id="processingText">Processing files...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="processingProgress"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Section -->
+        <section class="analysis-section" id="analysisSection" style="display: none;">
+            <div class="card">
+                <h2>📊 Step 2: Review Detected Information</h2>
+                
+                <div class="detected-info" id="detectedInfo">
+                    <div class="info-grid" id="infoGrid">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+                
+                <div class="structure-preview" id="structurePreview">
+                    <!-- Dynamically populated -->
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-success" id="generateBtn">
+                        <span class="btn-icon">✅</span>
+                        Generate Interactive Checklist
+                    </button>
+                    <button class="btn btn-secondary" id="editTextBtn">
+                        <span class="btn-icon">✏️</span>
+                        Edit Extracted Text
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Text Editor Section -->
+        <section class="text-editor-section" id="textEditorSection" style="display: none;">
+            <div class="card">
+                <h2>📝 Extracted Text Editor</h2>
+                <p class="help-text">You can manually edit the extracted text before generating the checklist</p>
+                
+                <textarea id="extractedText" class="text-editor" placeholder="Extracted text will appear here..."></textarea>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" id="reanalyzeBtn">
+                        <span class="btn-icon">🔄</span>
+                        Re-analyze Text
+                    </button>
+                    <button class="btn btn-secondary" id="closeEditorBtn">
+                        <span class="btn-icon">❌</span>
+                        Close Editor
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Checklist Modal -->
+    <div class="modal" id="checklistModal">
+        <div class="modal-overlay" onclick="closeChecklistModal()"></div>
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeChecklistModal()">×</button>
+            <div id="checklistContainer">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Built for tour managers and production crews • <a href="https://github.com/yourusername/rider-checklist" target="_blank">View on GitHub</a></p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="parser.js"></script>
+    <script src="ocr.js"></script>
+    <script src="checklist.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
